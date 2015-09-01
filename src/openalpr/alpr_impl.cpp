@@ -347,7 +347,7 @@ namespace alpr
             bestPlateIndex = plateResult.topNPlates.size();
             isBestPlateSelected = true;
           }
-
+            
           AlprPlate aplate;
           aplate.characters = ppResults[pp].letters;
           aplate.overall_confidence = ppResults[pp].totalscore;

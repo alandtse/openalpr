@@ -152,15 +152,15 @@ namespace alpr
 
     if (config->debugGeneral)
       cout << "Plate inverted: " << pipeline_data->plate_inverted << endl;
-    
+
     // Invert multiline plates and redo the thresholds before finding the second line
     if (config->multiline && config->auto_invert && pipeline_data->plate_inverted)
     {
       bitwise_not(pipeline_data->crop_gray, pipeline_data->crop_gray);
       pipeline_data->thresholds = produceThresholds(pipeline_data->crop_gray, pipeline_data->config);
     }
-      
-    
+
+
     LineFinder lf(pipeline_data);
     vector<vector<Point> > linePolygons = lf.findLines(pipeline_data->crop_gray, bestContours);
 
@@ -195,6 +195,14 @@ namespace alpr
       }
 
     }
+
+    if (config->auto_invert)
+      pipeline_data->plate_inverted = isPlateInverted();
+    else
+      pipeline_data->plate_inverted = config->always_invert;
+
+    if (config->debugGeneral)
+      cout << "Plate inverted: " << pipeline_data->plate_inverted << endl;
 
 
     if (pipeline_data->textLines.size() > 0)
@@ -311,7 +319,7 @@ namespace alpr
     int bestFitScore = -1;
 
     vector<bool> bestIndices;
-     
+
     for (int i = 0; i < NUM_STEPS; i++)
     {
 
@@ -357,7 +365,7 @@ namespace alpr
         larger_char_width_mm = config->charWidthMM[i];
       }
     }
-    
+
     float idealAspect=larger_char_width_mm / larger_char_height_mm;
     float aspecttolerance=0.25;
 
@@ -429,7 +437,7 @@ namespace alpr
       if (textContours.goodIndices[i] == false)
         continue;
 
-      textContours.goodIndices[i] = false;  // Set it to not included unless it proves 
+      textContours.goodIndices[i] = false;  // Set it to not included unless it proves
 
       int voteIndex = -1;
       int parentID = textContours.hierarchy[i][3];
@@ -508,9 +516,9 @@ namespace alpr
       if (textContours.goodIndices[i] == false)
         continue;
 
-      float percentInsideMask = getContourAreaPercentInsideMask(outerMask, 
+      float percentInsideMask = getContourAreaPercentInsideMask(outerMask,
               textContours.contours,
-              textContours.hierarchy, 
+              textContours.hierarchy,
               (int) i);
 
 
@@ -520,7 +528,7 @@ namespace alpr
         // Not enough area is inside the lines.
         if (config->debugCharAnalysis)
           cout << "Rejecting due to insufficient area" << endl;
-        textContours.goodIndices[i] = false; 
+        textContours.goodIndices[i] = false;
 
         continue;
       }
@@ -554,7 +562,7 @@ namespace alpr
         else
         {
 
-          textContours.goodIndices[i] = false; 
+          textContours.goodIndices[i] = false;
           if (config->debugCharAnalysis)
             cout << "Rejecting due to top/bottom points that are out of range" << endl;
         }

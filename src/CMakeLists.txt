@@ -16,10 +16,10 @@ add_definitions( -DOPENALPR_PATCH_VERSION=${OPENALPR_PATCH_VERSION})
 SET(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
 
 # TODO: switch to http://www.cmake.org/cmake/help/v2.8.5/cmake.html#module:GNUInstallDirs ?
-IF (NOT CMAKE_INSTALL_SYSCONFDIR) 
+IF (NOT CMAKE_INSTALL_SYSCONFDIR)
   SET(CMAKE_INSTALL_SYSCONFDIR "/etc")
 ENDIF()
-IF (NOT CMAKE_INSTALL_VARDIR) 
+IF (NOT CMAKE_INSTALL_VARDIR)
   SET(CMAKE_INSTALL_VARDIR "${CMAKE_INSTALL_PREFIX}/var")
 ENDIF()
 
@@ -47,7 +47,7 @@ if ( NOT DEFINED WITH_UTILITIES )
   SET(WITH_UTILITIES ON)
 ENDIF()
 
-IF (WIN32 AND WITH_DAEMON) 
+IF (WIN32 AND WITH_DAEMON)
   MESSAGE(WARNING "Skipping alprd daemon installation, as it is not supported in Windows.")
   SET(WITH_DAEMON OFF)
 ENDIF()
@@ -59,8 +59,7 @@ include_directories(${Tesseract_INCLUDE_DIRS})
 # Discover OpenCV directory automatically
 find_path(OpenCV_DIR
   NAMES OpenCVConfig.cmake
-  HINTS ${CMAKE_SOURCE_DIR}/../libraries/opencv/
-        /storage/projects/alpr/libraries/opencv/
+  HINTS ${CMAKE_SOURCE_DIR}/../libraries/opencv/OpenCVConfig.cmake
 )
 # Opencv Package
 FIND_PACKAGE( OpenCV REQUIRED )
@@ -96,7 +95,7 @@ ENDIF()
 set(CMAKE_CSS_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall ")
 ADD_EXECUTABLE( alpr  main.cpp )
 
-if (WIN32) 
+if (WIN32)
    SET(OPENALPR_LIB openalpr-static)
 ELSE()
    SET(OPENALPR_LIB openalpr)
@@ -126,14 +125,14 @@ IF (WITH_DAEMON)
 	  ${Tesseract_LIBRARIES}
       ${Extra_LIBS}
     )
-	
+
 ENDIF()
 
 if(WITH_UTILITIES)
 add_subdirectory(misc_utilities)
 ENDIF()
 
-if (WITH_TESTS)  
+if (WITH_TESTS)
 add_subdirectory(tests)
 ENDIF()
 
@@ -141,7 +140,7 @@ add_subdirectory(openalpr)
 add_subdirectory(statedetection)
 add_subdirectory(video)
 
-if (WITH_BINDING_JAVA) 
+if (WITH_BINDING_JAVA)
 add_subdirectory(bindings/java)
 ENDIF()
 

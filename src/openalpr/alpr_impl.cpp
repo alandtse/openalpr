@@ -38,7 +38,7 @@ namespace alpr
 
     prewarp = ALPR_NULL_PTR;
 
-
+    
     // Config file or runtime dir not found.  Don't process any further.
     if (config->loaded == false)
     {
@@ -53,9 +53,13 @@ namespace alpr
       recognizer.plateDetector = createDetector(config);
       recognizer.ocr = new OCR(config);
 
-      recognizer.stateDetector = new StateDetector(this->config->country, this->config->config_file_path, this->config->runtimeBaseDir);
+      recognizer.stateDetector = new StateDetector(this->config->country, this->config->runtimeBaseDir);
+
+
+
 
       recognizers[config->country] = recognizer;
+
 
     }
 
@@ -152,10 +156,6 @@ namespace alpr
       config->setCountry(config->loaded_countries[i]);
       AlprFullDetails sub_results = analyzeSingleCountry(img, grayImg, warpedRegionsOfInterest);
 
-      sub_results.results.epoch_time = start_time;
-      sub_results.results.img_width = img.cols;
-      sub_results.results.img_height = img.rows;
-
       aggregator.addResults(sub_results);
     }
     response = aggregator.getAggregateResults();
@@ -209,24 +209,12 @@ namespace alpr
 
     }
 
-    char keypress;
+
     if (config->debugPauseOnFrame)
     {
       // Pause indefinitely until they press a key
-      while ((char) (keypress = cv::waitKey(50)) == -1)
-      {
-      }
-      // Add keypress processing 11/7/2015 adt
-      // Adding continue option
-      switch (keypress) {
-        case 'c':
-        cout << "Continue pressed " << keypress << endl;
-        config->debugPauseOnFrame = false;
-        break;
-        default:
-        cout << "Pressed \"c\" to continue" << endl;
-        break;
-      }
+      while ((char) cv::waitKey(50) == -1)
+      {}
     }
 
     return response;
@@ -347,7 +335,7 @@ namespace alpr
             bestPlateIndex = plateResult.topNPlates.size();
             isBestPlateSelected = true;
           }
-            
+
           AlprPlate aplate;
           aplate.characters = ppResults[pp].letters;
           aplate.overall_confidence = ppResults[pp].totalscore;

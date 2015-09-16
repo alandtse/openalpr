@@ -87,7 +87,7 @@ namespace alpr
     }
 
 
-    loadCommonValues(config_file_path);
+    loadCommonValues(configFile);
 
     if (runtime_dir.compare("") != 0)
     {

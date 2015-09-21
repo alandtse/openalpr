@@ -34,7 +34,7 @@ namespace alpr
   std::string getString(CSimpleIniA* ini, std::string section, std::string key, std::string defaultValue);
   bool getBoolean(CSimpleIniA* ini, std::string section, std::string key, bool defaultValue);
   std::vector<float> getAllFloats(CSimpleIniA* ini, string section, string key);
-
+  
   Config::Config(const std::string country, const std::string config_file, const std::string runtime_dir)
   {
 

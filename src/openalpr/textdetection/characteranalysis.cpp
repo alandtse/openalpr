@@ -365,7 +365,7 @@ namespace alpr
         larger_char_width_mm = config->charWidthMM[i];
       }
     }
-
+    
     float idealAspect=larger_char_width_mm / larger_char_height_mm;
     float aspecttolerance=0.25;
 

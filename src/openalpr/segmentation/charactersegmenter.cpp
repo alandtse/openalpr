@@ -315,6 +315,8 @@ namespace alpr
       vector<Rect> validBoxes;
 
       int pxLeniency = 0;
+
+      int pxLeniency = 2;
       vector<Rect> allBoxes = convert1DHitsToRect(histogram.get1DHits(pxLeniency), top, bottom);
 
       if (this->config->debugCharSegmenter)
@@ -1077,11 +1079,12 @@ namespace alpr
 
     vector<Rect> boxes;
 
+
     for (unsigned int i = 0; i < hits.size(); i++)
     {
       Point topLeft = Point(hits[i].first, top.getPointAt(hits[i].first) - 1);
       Point botRight = Point(hits[i].second, bottom.getPointAt(hits[i].second) + 1);
-
+      
       boxes.push_back(Rect(topLeft, botRight));
     }
 

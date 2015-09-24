@@ -38,7 +38,7 @@ namespace alpr
 
     prewarp = ALPR_NULL_PTR;
 
-    
+
     // Config file or runtime dir not found.  Don't process any further.
     if (config->loaded == false)
     {
@@ -275,12 +275,13 @@ namespace alpr
       {
         AlprPlateResult plateResult;
 
+
         // If there's only one pattern for a country, use it.  Otherwise use the default
         if (country_recognizers.ocr->postProcessor.getPatterns().size() == 1)
           plateResult.region = country_recognizers.ocr->postProcessor.getPatterns()[0];
         else
           plateResult.region = defaultRegion;
-
+        
         plateResult.regionConfidence = 0;
         plateResult.plate_index = platecount++;
         plateResult.requested_topn = topN;

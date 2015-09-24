@@ -162,9 +162,7 @@ namespace alpr
 
       getTimeMonotonic(&startTime);
 
-      Mat edge_mask = filterEdgeBoxes(pipeline_data->thresholds, candidateBoxes, avgCharWidth, avgCharHeight);
-      bitwise_and(edge_filter_mask, edge_mask, edge_filter_mask);
-
+      filterEdgeBoxes(pipeline_data->thresholds, candidateBoxes, medianCharWidth, avgCharHeight);
       candidateBoxes = combineCloseBoxes(candidateBoxes);
 
       candidateBoxes = filterMostlyEmptyBoxes(pipeline_data->thresholds, candidateBoxes);
@@ -441,7 +439,7 @@ namespace alpr
     if (charBoxes.size() <= 2)
       return charBoxes;
 
-    // First find the median char gap (the space from midpoint to midpoint of chars)
+    // First find the median char gap (the space between characters)
 
     vector<int> char_gaps;
     for (unsigned int i = 0; i < charBoxes.size(); i++)
@@ -450,7 +448,8 @@ namespace alpr
         break;
 
       // the space between charbox i and i+1
-      char_gaps.push_back(getCharGap(charBoxes[i], charBoxes[i+1]));
+      int char_gap = charBoxes[i+1].x - (charBoxes[i].x + charBoxes[i].width);
+      char_gaps.push_back(char_gap);
     }
 
     int median_char_gap = median(char_gaps.data(), char_gaps.size());
@@ -481,18 +480,18 @@ namespace alpr
 
       float left_gap;
       float right_gap;
-
+      
       if (i == 0)
         left_gap = 999999999999;
       else
-        left_gap = getCharGap(charBoxes[i-1], charBoxes[i]);
+        left_gap = charBoxes[i].x - (charBoxes[i-1].x + charBoxes[i-1].width);
 
-      right_gap = getCharGap(charBoxes[i], charBoxes[i+1]);
+      right_gap = charBoxes[i+1].x - (charBoxes[i].x + charBoxes[i].width);
 
       int min_gap = (int) ((float)median_char_gap) * 0.75;
       int max_gap = (int) ((float)median_char_gap) * 1.25;
 
-      int max_width = (int) ((float)biggestCharWidth) * 1.2;
+      int max_width = (int) ((float)biggestCharWidth) * 1.1;
 
       bool has_good_gap = (left_gap >= min_gap && left_gap <= max_gap) || (right_gap >= min_gap && right_gap <= max_gap);
 
@@ -1084,7 +1083,7 @@ namespace alpr
     {
       Point topLeft = Point(hits[i].first, top.getPointAt(hits[i].first) - 1);
       Point botRight = Point(hits[i].second, bottom.getPointAt(hits[i].second) + 1);
-      
+
       boxes.push_back(Rect(topLeft, botRight));
     }
 

@@ -81,8 +81,7 @@ namespace alpr
           max_col_size = columnCount;
       }
     }
-
-    drawAndWait(inputImage);
+    
 
     int histo_width = this->colHeights.size();
     int histo_height = max_col_size + 10;
@@ -100,7 +99,7 @@ namespace alpr
         histoImg.at<uchar>(histo_height - columnCount, col) = 255;
     }
 
-    drawAndWait(histoImg);
+
   }
 
   int Histogram::getLocalMinimum(int leftX, int rightX)

@@ -319,7 +319,7 @@ namespace alpr
     int bestFitScore = -1;
 
     vector<bool> bestIndices;
-
+     
     for (int i = 0; i < NUM_STEPS; i++)
     {
 

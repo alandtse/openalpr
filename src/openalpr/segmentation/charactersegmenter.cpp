@@ -76,7 +76,7 @@ namespace alpr
         cout << "LINE " << lineidx << ": avgCharHeight: " << avgCharHeight << " - height_to_width_ratio: " << height_to_width_ratio << endl;
         cout << "LINE " << lineidx << ": avgCharWidth: " << avgCharWidth << endl;
       }
-      
+
 
       removeSmallContours(pipeline_data->thresholds, avgCharHeight, pipeline_data->textLines[lineidx]);
 
@@ -311,10 +311,8 @@ namespace alpr
     for (int row = 0; row < histoImg.rows; row++)
     {
       vector<Rect> validBoxes;
-
+      
       int pxLeniency = 0;
-
-      int pxLeniency = 2;
       vector<Rect> allBoxes = convert1DHitsToRect(histogram.get1DHits(pxLeniency), top, bottom);
 
       if (this->config->debugCharSegmenter)

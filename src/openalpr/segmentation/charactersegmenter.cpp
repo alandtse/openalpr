@@ -76,7 +76,7 @@ namespace alpr
         cout << "LINE " << lineidx << ": avgCharHeight: " << avgCharHeight << " - height_to_width_ratio: " << height_to_width_ratio << endl;
         cout << "LINE " << lineidx << ": avgCharWidth: " << avgCharWidth << endl;
       }
-
+      
 
       removeSmallContours(pipeline_data->thresholds, avgCharHeight, pipeline_data->textLines[lineidx]);
 
@@ -480,7 +480,7 @@ namespace alpr
 
       float left_gap;
       float right_gap;
-      
+
       if (i == 0)
         left_gap = 999999999999;
       else

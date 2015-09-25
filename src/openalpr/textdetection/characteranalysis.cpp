@@ -152,7 +152,7 @@ namespace alpr
 
     if (config->debugGeneral)
       cout << "Plate inverted: " << pipeline_data->plate_inverted << endl;
-
+    
     // Invert multiline plates and redo the thresholds before finding the second line
     if (config->multiline && config->auto_invert && pipeline_data->plate_inverted)
     {
@@ -195,14 +195,6 @@ namespace alpr
       }
 
     }
-
-    if (config->auto_invert)
-      pipeline_data->plate_inverted = isPlateInverted();
-    else
-      pipeline_data->plate_inverted = config->always_invert;
-
-    if (config->debugGeneral)
-      cout << "Plate inverted: " << pipeline_data->plate_inverted << endl;
 
 
     if (pipeline_data->textLines.size() > 0)
@@ -319,7 +311,7 @@ namespace alpr
     int bestFitScore = -1;
 
     vector<bool> bestIndices;
-     
+
     for (int i = 0; i < NUM_STEPS; i++)
     {
 
@@ -365,7 +357,7 @@ namespace alpr
         larger_char_width_mm = config->charWidthMM[i];
       }
     }
-    
+
     float idealAspect=larger_char_width_mm / larger_char_height_mm;
     float aspecttolerance=0.25;
 

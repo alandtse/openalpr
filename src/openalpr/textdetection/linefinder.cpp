@@ -119,7 +119,7 @@ namespace alpr
 
       // Pull out a crop of the plate around the line we know about,
       // then do a horizontal histogram on all the thresholds.  Find the other line based on that histogram
-    
+       
       vector<Point> histogramArea = calculateCroppedRegionForHistogram(imageSize, bestLine);
 
       Size cropped_quad_size(distanceBetweenPoints(histogramArea[0], histogramArea[1]), distanceBetweenPoints(histogramArea[0], histogramArea[3]));

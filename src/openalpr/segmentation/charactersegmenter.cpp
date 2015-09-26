@@ -900,7 +900,7 @@ namespace alpr
     {
       Mat mask = Mat::zeros(thresholds[0].size(), CV_8U);
       bitwise_not(mask, mask);
-
+      
       rectangle(mask, Point(0, charRegions[0].y), Point(leftEdge, charRegions[0].y+charRegions[0].height), Scalar(0,0,0), -1);
       rectangle(mask, Point(rightEdge, charRegions[0].y), Point(mask.cols, charRegions[0].y+charRegions[0].height), Scalar(0,0,0), -1);
 

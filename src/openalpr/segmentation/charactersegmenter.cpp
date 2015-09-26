@@ -191,12 +191,6 @@ namespace alpr
       }
     }
 
-    // Apply the edge mask (left and right ends) after all lines have been processed.
-    for (unsigned int i = 0; i < pipeline_data->thresholds.size(); i++)
-    {
-      bitwise_and(pipeline_data->thresholds[i], edge_filter_mask, pipeline_data->thresholds[i]);
-    }
-
     vector<Rect> all_regions_combined;
     for (unsigned int lidx = 0; lidx < pipeline_data->charRegions.size(); lidx++)
     {
@@ -900,7 +894,7 @@ namespace alpr
     {
       Mat mask = Mat::zeros(thresholds[0].size(), CV_8U);
       bitwise_not(mask, mask);
-      
+
       rectangle(mask, Point(0, charRegions[0].y), Point(leftEdge, charRegions[0].y+charRegions[0].height), Scalar(0,0,0), -1);
       rectangle(mask, Point(rightEdge, charRegions[0].y), Point(mask.cols, charRegions[0].y+charRegions[0].height), Scalar(0,0,0), -1);
 

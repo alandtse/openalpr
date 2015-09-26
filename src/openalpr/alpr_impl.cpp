@@ -281,7 +281,7 @@ namespace alpr
           plateResult.region = country_recognizers.ocr->postProcessor.getPatterns()[0];
         else
           plateResult.region = defaultRegion;
-        
+
         plateResult.regionConfidence = 0;
         plateResult.plate_index = platecount++;
         plateResult.requested_topn = topN;
@@ -347,7 +347,7 @@ namespace alpr
           {
             AlprChar character_details;
             Letter l = ppResults[pp].letter_details[c_idx];
-
+            
             character_details.character = l.letter;
             character_details.confidence = l.totalscore;
             cv::Rect char_rect = pipeline_data.charRegionsFlat[l.charposition];

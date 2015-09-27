@@ -162,7 +162,9 @@ namespace alpr
 
       getTimeMonotonic(&startTime);
 
-      filterEdgeBoxes(pipeline_data->thresholds, candidateBoxes, avgCharWidth, avgCharHeight);
+      Mat edge_mask = filterEdgeBoxes(pipeline_data->thresholds, candidateBoxes, avgCharWidth, avgCharHeight);
+      bitwise_and(edge_filter_mask, edge_mask, edge_filter_mask);
+
       candidateBoxes = combineCloseBoxes(candidateBoxes);
 
       candidateBoxes = filterMostlyEmptyBoxes(pipeline_data->thresholds, candidateBoxes);
@@ -942,7 +944,7 @@ namespace alpr
         for (unsigned int z = 0; z < imgDbgCleanStages.size(); z++)
           fillMask(imgDbgCleanStages[z], invertedMask, Scalar(0,0,255));
       }
-
+      
       return mask;
     }
 

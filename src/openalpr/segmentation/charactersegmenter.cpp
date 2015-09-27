@@ -96,12 +96,6 @@ namespace alpr
 
         HistogramVertical vertHistogram(pipeline_data->thresholds[i], histogramMask);
 
-        if (this->config->debugCharSegmenter)
-        {
-          Mat histoCopy(vertHistogram.histoImg.size(), vertHistogram.histoImg.type());
-          //vertHistogram.copyTo(histoCopy);
-          cvtColor(vertHistogram.histoImg, histoCopy, CV_GRAY2RGB);
-
 //        if (this->config->debugCharSegmenter)
 //        {
 //          Mat histoCopy(vertHistogram.histoImg.size(), vertHistogram.histoImg.type());
@@ -191,6 +185,12 @@ namespace alpr
         Mat cleanImgDash = drawImageDashboard(this->imgDbgCleanStages, this->imgDbgCleanStages[0].type(), 3);
         displayImage(config, "Segmentation Clean Filters", cleanImgDash);
       }
+    }
+
+    // Apply the edge mask (left and right ends) after all lines have been processed.
+    for (unsigned int i = 0; i < pipeline_data->thresholds.size(); i++)
+    {
+      bitwise_and(pipeline_data->thresholds[i], edge_filter_mask, pipeline_data->thresholds[i]);
     }
 
     vector<Rect> all_regions_combined;
@@ -944,7 +944,7 @@ namespace alpr
         for (unsigned int z = 0; z < imgDbgCleanStages.size(); z++)
           fillMask(imgDbgCleanStages[z], invertedMask, Scalar(0,0,255));
       }
-      
+
       return mask;
     }
 

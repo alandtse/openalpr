@@ -19,7 +19,6 @@
 
 #include <opencv2/core/core.hpp>
 #include <functional>
-#include <cctype>
 
 #include "utility.h"
 
@@ -52,7 +51,7 @@ namespace alpr
       expandedRegion.width = 0;
     if (expandedRegion.height < 0)
       expandedRegion.height = 0;
-    
+
     return expandedRegion;
   }
 
@@ -285,7 +284,7 @@ int levenshteinDistance (const std::string &s1, const std::string &s2, int max)
     const char* word2 = s2.c_str();
     int len2 = s2.length();
     max--;
-  
+
     //int matrix[2][len2 + 1];
     std::vector<std::vector<int> > matrix;
     for (unsigned int i = 0; i < 2; i++)
@@ -297,14 +296,14 @@ int levenshteinDistance (const std::string &s1, const std::string &s2, int max)
     }
     int i;
     int j;
-    
+
     /*
       Initialize the 0 row of "matrix".
 
-        0  
-        1  
-        2  
-        3  
+        0
+        1
+        2
+        3
 
      */
 
@@ -399,8 +398,8 @@ int levenshteinDistance (const std::string &s1, const std::string &s2, int max)
       returnval = max + 1;
     return returnval;
 }
-  
-  
+
+
   LineSegment::LineSegment()
   {
     init(0, 0, 0, 0);
@@ -446,7 +445,7 @@ int levenshteinDistance (const std::string &s1, const std::string &s2, int max)
     float y_intercept = getPointAt(0);
     return (y - y_intercept) / slope;
   }
-  
+
   Point LineSegment::closestPointOnSegmentTo(Point p)
   {
     float top = (p.x - p1.x) * (p2.x - p1.x) + (p.y - p1.y)*(p2.y - p1.y);
@@ -528,7 +527,7 @@ int levenshteinDistance (const std::string &s1, const std::string &s2, int max)
   }
 
   // Given a contour and a mask, this function determines what percentage of the contour (area)
-  // is inside the masked area. 
+  // is inside the masked area.
   float getContourAreaPercentInsideMask(cv::Mat mask, std::vector<std::vector<cv::Point> > contours, std::vector<cv::Vec4i> hierarchy, int contourIndex)
   {
 

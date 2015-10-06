@@ -116,6 +116,16 @@ namespace alpr
 
     int64_t start_time = getEpochTimeMs();
 
+    // Fix regions of interest in case they extend beyond the bounds of the image
+    for (unsigned int i = 0; i < regionsOfInterest.size(); i++)
+      regionsOfInterest[i] = expandRect(regionsOfInterest[i], 0, 0, img.cols, img.rows);
+
+    for (unsigned int i = 0; i < regionsOfInterest.size(); i++)
+    {
+      response.results.regionsOfInterest.push_back(AlprRegionOfInterest(regionsOfInterest[i].x, regionsOfInterest[i].y,
+              regionsOfInterest[i].width, regionsOfInterest[i].height));
+    }
+
     //Stop processing early if no image
     if (!img.data)
     {
@@ -155,6 +165,10 @@ namespace alpr
 
       config->setCountry(config->loaded_countries[i]);
       AlprFullDetails sub_results = analyzeSingleCountry(img, grayImg, warpedRegionsOfInterest);
+
+      sub_results.results.epoch_time = start_time;
+      sub_results.results.img_width = img.cols;
+      sub_results.results.img_height = img.rows;
 
       aggregator.addResults(sub_results);
     }
@@ -347,7 +361,7 @@ namespace alpr
           {
             AlprChar character_details;
             Letter l = ppResults[pp].letter_details[c_idx];
-            
+
             character_details.character = l.letter;
             character_details.confidence = l.totalscore;
             cv::Rect char_rect = pipeline_data.charRegionsFlat[l.charposition];

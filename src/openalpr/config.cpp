@@ -67,7 +67,7 @@ namespace alpr
     {
       // Use the default
       config_file_path = DEFAULT_CONFIG_FILE;
-      debug_message = "Config file location provided via default location: " + string(DEFAULT_CONFIG_FILE);
+      debug_message = "Config file location provided via default location";
     }
 
 
@@ -87,7 +87,7 @@ namespace alpr
     }
 
 
-    loadCommonValues(configFile);
+    loadCommonValues(config_file_path);
 
     if (runtime_dir.compare("") != 0)
     {
@@ -175,7 +175,7 @@ namespace alpr
     maxDetectionInputHeight = getInt(ini, "", "max_detection_input_height", 768);
 
     mustMatchPattern = getBoolean(ini, "", "must_match_pattern", false);
-    
+
     skipDetection = getBoolean(ini, "", "skip_detection", false);
 
     prewarp = getString(ini, "", "prewarp", "");

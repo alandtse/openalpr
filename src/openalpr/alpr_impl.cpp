@@ -284,7 +284,8 @@ namespace alpr
       if (!pipeline_data.disqualified)
       {
         AlprPlateResult plateResult;
-
+        
+        plateResult.country = config->country;
 
         // If there's only one pattern for a country, use it.  Otherwise use the default
         if (country_recognizers.ocr->postProcessor.getPatterns().size() == 1)

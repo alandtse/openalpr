@@ -30,15 +30,15 @@ namespace alpr
 {
   AlprImpl::AlprImpl(const std::string country, const std::string configFile, const std::string runtimeDir)
   {
-    
+
     timespec startTime;
     getTimeMonotonic(&startTime);
-    
+
     config = new Config(country, configFile, runtimeDir);
 
     prewarp = ALPR_NULL_PTR;
 
-    
+
     // Config file or runtime dir not found.  Don't process any further.
     if (config->loaded == false)
     {
@@ -64,14 +64,14 @@ namespace alpr
     setDetectRegion(DEFAULT_DETECT_REGION);
     this->topN = DEFAULT_TOPN;
     setDefaultRegion("");
-    
+
     prewarp = new PreWarp(config);
-    
+
     timespec endTime;
     getTimeMonotonic(&endTime);
     if (config->debugTiming)
       cout << "OpenALPR Initialization Time: " << diffclock(startTime, endTime) << "ms." << endl;
-    
+
   }
 
   AlprImpl::~AlprImpl()
@@ -91,7 +91,7 @@ namespace alpr
         delete iterator->second.ocr;
     }
 
-    
+
     if (prewarp != ALPR_NULL_PTR)
       delete prewarp;
   }
@@ -112,16 +112,7 @@ namespace alpr
 
     int64_t start_time = getEpochTimeMs();
 
-    // Fix regions of interest in case they extend beyond the bounds of the image
-    for (unsigned int i = 0; i < regionsOfInterest.size(); i++)
-      regionsOfInterest[i] = expandRect(regionsOfInterest[i], 0, 0, img.cols, img.rows);
-
-    for (unsigned int i = 0; i < regionsOfInterest.size(); i++)
-    {
-      response.results.regionsOfInterest.push_back(AlprRegionOfInterest(regionsOfInterest[i].x, regionsOfInterest[i].y,
-              regionsOfInterest[i].width, regionsOfInterest[i].height));
-    }
-
+    //Stop processing early if no image
     if (!img.data)
     {
       // Invalid image
@@ -131,11 +122,19 @@ namespace alpr
       return response;
     }
 
+    for (unsigned int i = 0; i < regionsOfInterest.size(); i++)
+    {
+      // Fix regions of interest in case they extend beyond the bounds of the image
+      regionsOfInterest[i] = expandRect(regionsOfInterest[i], 0, 0, img.cols, img.rows);
+      response.results.regionsOfInterest.push_back(AlprRegionOfInterest(regionsOfInterest[i].x, regionsOfInterest[i].y,
+              regionsOfInterest[i].width, regionsOfInterest[i].height));
+    }
+
     // Convert image to grayscale if required
     Mat grayImg = img;
     if (img.channels() > 2)
       cvtColor( img, grayImg, CV_BGR2GRAY );
-    
+
     // Prewarp the image and ROIs if configured]
     std::vector<cv::Rect> warpedRegionsOfInterest = regionsOfInterest;
     // Warp the image if prewarp is provided
@@ -156,7 +155,7 @@ namespace alpr
       sub_results.results.epoch_time = start_time;
       sub_results.results.img_width = img.cols;
       sub_results.results.img_height = img.rows;
-      
+
       aggregator.addResults(sub_results);
     }
     response = aggregator.getAggregateResults();
@@ -182,7 +181,7 @@ namespace alpr
 
       for (unsigned int i = 0; i < response.results.plates.size(); i++)
       {
-        // Draw a box around the license plate 
+        // Draw a box around the license plate
         for (int z = 0; z < 4; z++)
         {
           AlprCoordinate* coords = response.results.plates[i].plate_points;
@@ -190,7 +189,7 @@ namespace alpr
           Point p2(coords[(z + 1) % 4].x, coords[(z + 1) % 4].y);
           line(img, p1, p2, Scalar(255,0,255), 2);
         }
-        
+
         // Draw the individual character boxes
         for (int q = 0; q < response.results.plates[i].bestPlate.character_details.size(); q++)
         {
@@ -210,12 +209,24 @@ namespace alpr
 
     }
 
-
+    char keypress;
     if (config->debugPauseOnFrame)
     {
       // Pause indefinitely until they press a key
-      while ((char) cv::waitKey(50) == -1)
-      {}
+      while ((char) (keypress = cv::waitKey(50)) == -1)
+      {
+      }
+      // Add keypress processing 11/7/2015 adt
+      // Adding continue option
+      switch (keypress) {
+        case 'c':
+        cout << "Continue pressed " << keypress << endl;
+        config->debugPauseOnFrame = false;
+        break;
+        default:
+        cout << "Pressed \"c\" to continue" << endl;
+        break;
+      }
     }
 
     return response;
@@ -224,7 +235,7 @@ namespace alpr
   AlprFullDetails AlprImpl::analyzeSingleCountry(cv::Mat colorImg, cv::Mat grayImg, std::vector<cv::Rect> warpedRegionsOfInterest)
   {
     AlprFullDetails response;
-    
+
     AlprRecognizers country_recognizers = recognizers[config->country];
     timespec startTime;
     getTimeMonotonic(&startTime);
@@ -275,13 +286,13 @@ namespace alpr
       if (!pipeline_data.disqualified)
       {
         AlprPlateResult plateResult;
-        
+
         // If there's only one pattern for a country, use it.  Otherwise use the default
         if (country_recognizers.ocr->postProcessor.getPatterns().size() == 1)
           plateResult.region = country_recognizers.ocr->postProcessor.getPatterns()[0];
         else
           plateResult.region = defaultRegion;
-        
+
         plateResult.regionConfidence = 0;
         plateResult.plate_index = platecount++;
         plateResult.requested_topn = topN;
@@ -347,7 +358,7 @@ namespace alpr
           {
             AlprChar character_details;
             Letter l = ppResults[pp].letter_details[c_idx];
-            
+
             character_details.character = l.letter;
             character_details.confidence = l.totalscore;
             cv::Rect char_rect = pipeline_data.charRegionsFlat[l.charposition];
@@ -674,7 +685,7 @@ namespace alpr
 
   void AlprImpl::setDetectRegion(bool detectRegion)
   {
-    
+
     this->detectRegion = detectRegion;
 
 
@@ -695,7 +706,7 @@ namespace alpr
     ss << OPENALPR_MAJOR_VERSION << "." << OPENALPR_MINOR_VERSION << "." << OPENALPR_PATCH_VERSION;
     return ss.str();
   }
-  
+
   cv::Mat AlprImpl::getCharacterTransformMatrix(PipelineData* pipeline_data ) {
     std::vector<Point2f> crop_corners;
     crop_corners.push_back(Point2f(0,0));
@@ -705,25 +716,25 @@ namespace alpr
 
     // Transform the points from the cropped region (skew corrected license plate region) back to the original image
     cv::Mat transmtx = cv::getPerspectiveTransform(crop_corners, pipeline_data->plate_corners);
-    
+
     return transmtx;
   }
-  
+
   std::vector<AlprCoordinate> AlprImpl::getCharacterPoints(cv::Rect char_rect, cv::Mat transmtx ) {
-    
+
 
     std::vector<Point2f> points;
     points.push_back(Point2f(char_rect.x, char_rect.y));
     points.push_back(Point2f(char_rect.x + char_rect.width, char_rect.y));
     points.push_back(Point2f(char_rect.x + char_rect.width, char_rect.y + char_rect.height));
     points.push_back(Point2f(char_rect.x, char_rect.y + char_rect.height));
-    
+
     cv::perspectiveTransform(points, points, transmtx);
-    
+
     // If using prewarp, remap the points to the original image
     points = prewarp->projectPoints(points, true);
-        
-    
+
+
     std::vector<AlprCoordinate> cornersvector;
     for (int i = 0; i < 4; i++)
     {
@@ -732,7 +743,7 @@ namespace alpr
       coord.y = round(points[i].y);
       cornersvector.push_back(coord);
     }
-    
+
     return cornersvector;
   }
 

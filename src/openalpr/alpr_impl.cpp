@@ -218,13 +218,28 @@ namespace alpr
       sleep_ms(1);
 
     }
-
-
+    // Pause if response includes any plates; works best with debugPostProcess enabled to view results
+    if (config->debugPauseOnPlates && response.results.plates.size() > 0){
+      config->debugPauseOnFrame = true;
+    }
+    char keypress;
     if (config->debugPauseOnFrame)
     {
       // Pause indefinitely until they press a key
-      while ((char) cv::waitKey(50) == -1)
-      {}
+      while ((char) (keypress = cv::waitKey(50)) == -1)
+      {
+      }
+      // Add keypress processing 11/7/2015 adt
+      // Adding continue option
+      switch (keypress) {
+        case 'c':
+        cout << "Continue pressed " << keypress << endl;
+        config->debugPauseOnFrame = false;
+        break;
+        default:
+        cout << "Press \"c\" to continue" << endl;
+        break;
+      }
     }
 
     return response;
@@ -286,7 +301,7 @@ namespace alpr
         AlprPlateResult plateResult;
 
         plateResult.country = config->country;
-        
+
         // If there's only one pattern for a country, use it.  Otherwise use the default
         if (country_recognizers.ocr->postProcessor.getPatterns().size() == 1)
           plateResult.region = country_recognizers.ocr->postProcessor.getPatterns()[0];

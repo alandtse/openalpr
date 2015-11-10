@@ -68,7 +68,7 @@ int main( int argc, const char** argv )
 
   TCLAP::UnlabeledMultiArg<std::string>  fileArg( "image_file", "Image containing license plates", true, "", "image_file_path"  );
 
-  
+
   TCLAP::ValueArg<std::string> countryCodeArg("c","country","Country code to identify (either us for USA or eu for Europe).  Default=us",false, "us" ,"country_code");
   TCLAP::ValueArg<int> seekToMsArg("","seek","Seek to the specied millisecond in a video file. Default=0",false, 0 ,"integer_ms");
   TCLAP::ValueArg<std::string> configFileArg("","config","Path to the openalpr.conf file",false, "" ,"config_file");
@@ -89,7 +89,7 @@ int main( int argc, const char** argv )
     cmd.add( fileArg );
     cmd.add( countryCodeArg );
 
-    
+
     if (cmd.parse( argc, argv ) == false)
     {
       // Error occured while parsing.  Exit now.
@@ -114,7 +114,7 @@ int main( int argc, const char** argv )
     return 1;
   }
 
-  
+
   cv::Mat frame;
 
   Alpr alpr(country, configFile);
@@ -290,8 +290,8 @@ int main( int argc, const char** argv )
 
 bool is_supported_image(std::string image_file)
 {
-  return (hasEndingInsensitive(image_file, ".png") || hasEndingInsensitive(image_file, ".jpg") || 
-	  hasEndingInsensitive(image_file, ".tif") || hasEndingInsensitive(image_file, ".bmp") ||  
+  return (hasEndingInsensitive(image_file, ".png") || hasEndingInsensitive(image_file, ".jpg") ||
+	  hasEndingInsensitive(image_file, ".tif") || hasEndingInsensitive(image_file, ".bmp") ||
 	  hasEndingInsensitive(image_file, ".jpeg") || hasEndingInsensitive(image_file, ".gif"));
 }
 
@@ -317,8 +317,8 @@ bool detectandshow( Alpr* alpr, cv::Mat frame, std::string region, bool writeJso
   double totalProcessingTime = diffclock(startTime, endTime);
   if (measureProcessingTime)
     std::cout << "Total Time to process image: " << totalProcessingTime << "ms." << std::endl;
-  
-  
+
+
   if (writeJson)
   {
     std::cout << alpr->toJson( results ) << std::endl;
@@ -334,17 +334,17 @@ bool detectandshow( Alpr* alpr, cv::Mat frame, std::string region, bool writeJso
 
       if (results.plates[i].regionConfidence > 0)
         std::cout << "State ID: " << results.plates[i].region << " (" << results.plates[i].regionConfidence << "% confidence)" << std::endl;
-      
+
       for (int k = 0; k < results.plates[i].topNPlates.size(); k++)
       {
         // Replace the multiline newline character with a dash
         std::string no_newline = results.plates[i].topNPlates[k].characters;
         std::replace(no_newline.begin(), no_newline.end(), '\n','-');
-        
+
         std::cout << "    - " << no_newline << "\t confidence: " << results.plates[i].topNPlates[k].overall_confidence;
         if (templatePattern.size() > 0 || results.plates[i].regionConfidence > 0)
           std::cout << "\t pattern_match: " << results.plates[i].topNPlates[k].matches_template;
-        
+
         std::cout << std::endl;
       }
     }
@@ -354,4 +354,3 @@ bool detectandshow( Alpr* alpr, cv::Mat frame, std::string region, bool writeJso
 
   return results.plates.size() > 0;
 }
-

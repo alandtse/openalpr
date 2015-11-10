@@ -37,9 +37,9 @@ namespace alpr
 
   AlprResults Alpr::recognize(std::string filepath)
   {
-    
+
     std::ifstream ifs(filepath.c_str(), std::ios::binary|std::ios::ate);
-    
+
     if (ifs)
       {
       std::ifstream::pos_type pos = ifs.tellg();

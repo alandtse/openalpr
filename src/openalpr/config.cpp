@@ -205,7 +205,7 @@ namespace alpr
     debugPostProcess = 	getBoolean(ini, "", "debug_postprocess", 	false);
     debugShowImages = 	getBoolean(ini, "", "debug_show_images",	false);
     debugPauseOnFrame = 	getBoolean(ini, "", "debug_pause_on_frame",	false);
-
+    debugPauseOnPlates = 	getBoolean(ini, "", "debug_pause_on_plates",	false);
   }
 
 
@@ -306,7 +306,8 @@ namespace alpr
     debugOcr = value;
     debugPostProcess = value;
     debugPauseOnFrame = value;
-  }
+    debugPauseOnPlates = value;
+}
 
 
   string Config::getCascadeRuntimeDir()

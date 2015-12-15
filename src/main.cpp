@@ -213,6 +213,8 @@ int main( int argc, const char** argv )
       if (fileExists(filename.c_str()))
       {
         int framenum = 0;
+        double frameTime = 0; //added 12/15/2015 adt to output video time and absolute frame
+        double vidFrame = 0;
 
         cv::VideoCapture cap = cv::VideoCapture();
         cap.open(filename);
@@ -224,7 +226,10 @@ int main( int argc, const char** argv )
           {
             cv::imwrite(LAST_VIDEO_STILL_LOCATION, frame);
           }
-          std::cout << "Frame: " << framenum << std::endl;
+          //Output additional video data video frame and current video time 12/15/2015 adt
+          frameTime = cap.get(CV_CAP_PROP_POS_MSEC);
+          vidFrame = cap.get(CV_CAP_PROP_POS_FRAMES);
+          std::cout << "Processing Frame: " << framenum << " VideoFrame: " << vidFrame << " VideoTime (ms) " << frameTime << std::endl;
           if (framenum == 0)
             motiondetector.ResetMotionDetection(&frame);
           detectandshow(&alpr, frame, "", outputJson);

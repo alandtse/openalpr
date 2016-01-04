@@ -72,7 +72,7 @@ namespace alpr
     }
   }
 
-  void PostProcess::addLetter(string letter, int line_index, int charposition, float score, string fontName)
+  void PostProcess::addLetter(string letter, int line_index, int charposition, float score)
   {
     if (score < config->postProcessMinConfidence)
       return;
@@ -248,7 +248,7 @@ namespace alpr
   {
     return rules.find(templateregion) != rules.end();
   }
-
+  
   float PostProcess::calculateMaxConfidenceScore()
   {
     // Take the best score for each char position and average it.
@@ -356,7 +356,7 @@ namespace alpr
         possibility.letters = possibility.letters + "\n";
       }
       last_line = letter.line_index;
-
+      
       if (letter.letter != SKIP_CHAR)
       {
         possibility.letters = possibility.letters + letter.letter;
@@ -391,16 +391,16 @@ namespace alpr
     if (allPossibilitiesLetters.end() != allPossibilitiesLetters.find(possibility.letters))
       return false;
 
-    // If mustMatchPattern is toggled in the config and a template is provided,
+    // If mustMatchPattern is toggled in the config and a template is provided, 
     // only include this result if there is a pattern match
-    if (!config->mustMatchPattern || templateregion.size() == 0 ||
+    if (!config->mustMatchPattern || templateregion.size() == 0 || 
         (config->mustMatchPattern && possibility.matchesTemplate))
     {
       allPossibilities.push_back(possibility);
       allPossibilitiesLetters.insert(possibility.letters);
       return true;
     }
-
+    
     return false;
   }
 
@@ -409,7 +409,7 @@ namespace alpr
     for(map<string,std::vector<RegexRule*> >::iterator it = rules.begin(); it != rules.end(); ++it) {
       v.push_back(it->first);
     }
-
+    
     return v;
   }
 

@@ -56,14 +56,14 @@ namespace alpr
 
   bool letterCompare( const Letter &left, const Letter &right );
 
-
+  
   class PostProcess
   {
     public:
       PostProcess(Config* config);
       ~PostProcess();
 
-      void addLetter(std::string letter, int line_index, int charposition, float score, std::string fontName);
+      void addLetter(std::string letter, int line_index, int charposition, float score);
 
       void clear();
       void analyze(std::string templateregion, int topn);
@@ -74,9 +74,9 @@ namespace alpr
       const std::vector<PPResult> getResults();
 
       bool regionIsValid(std::string templateregion);
-
+      
       std::vector<std::string> getPatterns();
-
+      
     private:
       Config* config;
 

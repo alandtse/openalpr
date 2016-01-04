@@ -32,7 +32,7 @@ namespace alpr
     const string MINIMUM_TESSERACT_VERSION = "3.03";
 
     this->config = config;
-
+    
     if (cmpVersion(tesseract.Version(), MINIMUM_TESSERACT_VERSION.c_str()) < 0)
     {
       std::cerr << "Warning: You are running an unsupported version of Tesseract." << endl;
@@ -54,7 +54,7 @@ namespace alpr
   void OCR::performOCR(PipelineData* pipeline_data)
   {
     const int SPACE_CHAR_CODE = 32;
-
+    
     timespec startTime;
     getTimeMonotonic(&startTime);
 
@@ -75,8 +75,8 @@ namespace alpr
     {
       // Make it black text on white background
       bitwise_not(pipeline_data->thresholds[i], pipeline_data->thresholds[i]);
-      tesseract.SetImage((uchar*) pipeline_data->thresholds[i].data,
-                          pipeline_data->thresholds[i].size().width, pipeline_data->thresholds[i].size().height,
+      tesseract.SetImage((uchar*) pipeline_data->thresholds[i].data, 
+                          pipeline_data->thresholds[i].size().width, pipeline_data->thresholds[i].size().height, 
                           pipeline_data->thresholds[i].channels(), pipeline_data->thresholds[i].step1());
 
       int absolute_charpos = 0;
@@ -104,7 +104,7 @@ namespace alpr
             // Ignore NULL pointers, spaces, and characters that are way too small to be valid
             if(symbol != 0 && symbol[0] != SPACE_CHAR_CODE && pointsize >= config->ocrMinFontSize)
             {
-              postProcessor.addLetter(string(symbol), line_idx, absolute_charpos, conf, string(fontName));
+              postProcessor.addLetter(string(symbol), line_idx, absolute_charpos, conf);
 
               if (this->config->debugOcr)
                 printf("charpos%d line%d: threshold %d:  symbol %s, conf: %f font: %s (index %d) size %dpx", absolute_charpos, line_idx, i, symbol, conf, fontName, fontindex, pointsize);
@@ -115,7 +115,7 @@ namespace alpr
               {
                 const char* choice = ci.GetUTF8Text();
 
-                postProcessor.addLetter(string(choice), line_idx, absolute_charpos, ci.Confidence(), string(fontName));
+                postProcessor.addLetter(string(choice), line_idx, absolute_charpos, ci.Confidence());
 
                 if (this->config->debugOcr)
                 {
@@ -127,7 +127,7 @@ namespace alpr
                 indent = true;
               }
               while(ci.Next());
-
+              
             }
 
             if (this->config->debugOcr)
@@ -138,7 +138,7 @@ namespace alpr
           while((ri->Next(level)));
 
           delete ri;
-
+          
           absolute_charpos++;
         }
       }

@@ -44,7 +44,7 @@ MotionDetector motiondetector;
 bool do_motiondetection = true;
 
 /** Function Headers */
-bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson);
+bool detectandshow(Alpr* alpr, cv::Mat frame, std::string region, bool writeJson, std::vector<int> regionCoords);
 bool is_supported_image(std::string image_file);
 
 bool measureProcessingTime = false;
@@ -57,6 +57,7 @@ bool program_active = true;
 int main( int argc, const char** argv )
 {
   std::vector<std::string> filenames;
+  std::vector<int> regionCoords; // 1/6/2016 adt, define box coordinates for scan
   std::string configFile = "";
   bool outputJson = false;
   int seektoms = 0;
@@ -67,8 +68,9 @@ int main( int argc, const char** argv )
   TCLAP::CmdLine cmd("OpenAlpr Command Line Utility", ' ', Alpr::getVersion());
 
   TCLAP::UnlabeledMultiArg<std::string>  fileArg( "image_file", "Image containing license plates", true, "", "image_file_path"  );
+  TCLAP::ValueArg<std::string> regionArg("r","region","Region of image to scan for license plates with (0,0) in top left. Region will be reduced to remain in image.  Format (parantheses required): \"x y width height\". Default=\"0 0 imageWidth imageHeight\"", false, "","\"x y width height\"");
 
-  
+
   TCLAP::ValueArg<std::string> countryCodeArg("c","country","Country code to identify (either us for USA or eu for Europe).  Default=us",false, "us" ,"country_code");
   TCLAP::ValueArg<int> seekToMsArg("","seek","Seek to the specified millisecond in a video file. Default=0",false, 0 ,"integer_ms");
   TCLAP::ValueArg<std::string> configFileArg("","config","Path to the openalpr.conf file",false, "" ,"config_file");
@@ -88,8 +90,8 @@ int main( int argc, const char** argv )
     cmd.add( configFileArg );
     cmd.add( fileArg );
     cmd.add( countryCodeArg );
+    cmd.add( regionArg); // 1/6/2016 adt, added to allow region for scan from commandline
 
-    
     if (cmd.parse( argc, argv ) == false)
     {
       // Error occurred while parsing.  Exit now.
@@ -106,7 +108,13 @@ int main( int argc, const char** argv )
     templatePattern = templatePatternArg.getValue();
     topn = topNArg.getValue();
     measureProcessingTime = clockSwitch.getValue();
-	do_motiondetection = motiondetect.getValue();
+	  do_motiondetection = motiondetect.getValue();
+    // 1/6/2016 adt, parse regionArg string into regionCoords vector
+    std::istringstream iss(regionArg.getValue()); // 1/6/2016 adt, added to allow region for scan from commandline
+    int n;
+    while (iss >> n) {
+        regionCoords.push_back(n);
+    }
   }
   catch (TCLAP::ArgException &e)    // catch any exceptions
   {
@@ -144,7 +152,7 @@ int main( int argc, const char** argv )
         if (fileExists(filename.c_str()))
         {
           frame = cv::imread(filename);
-          detectandshow(&alpr, frame, "", outputJson);
+          detectandshow(&alpr, frame, "", outputJson, regionCoords); // 1/6/2016 adt, modified to allow region for scan from commandline
         }
         else
         {
@@ -167,7 +175,7 @@ int main( int argc, const char** argv )
       {
         if (framenum == 0)
           motiondetector.ResetMotionDetection(&frame);
-        detectandshow(&alpr, frame, "", outputJson);
+        detectandshow(&alpr, frame, "", outputJson, regionCoords); // 1/6/2016 adt, modified to allow region for scan from commandline
         sleep_ms(10);
         framenum++;
       }
@@ -191,7 +199,7 @@ int main( int argc, const char** argv )
         {
           if (framenum == 0)
             motiondetector.ResetMotionDetection(&latestFrame);
-          detectandshow(&alpr, latestFrame, "", outputJson);
+          detectandshow(&alpr, latestFrame, "", outputJson, regionCoords); // 1/6/2016 adt, modified to allow region for scan from commandline
         }
 
         // Sleep 10ms
@@ -232,7 +240,7 @@ int main( int argc, const char** argv )
           std::cout << "Processing Frame: " << framenum << " VideoFrame: " << vidFrame << " VideoTime (ms) " << frameTime << std::endl;
           if (framenum == 0)
             motiondetector.ResetMotionDetection(&frame);
-          detectandshow(&alpr, frame, "", outputJson);
+          detectandshow(&alpr, frame, "", outputJson, regionCoords);
           //create a 1ms delay
           sleep_ms(1);
           framenum++;
@@ -249,7 +257,7 @@ int main( int argc, const char** argv )
       {
         frame = cv::imread(filename);
 
-        bool plate_found = detectandshow(&alpr, frame, "", outputJson);
+        bool plate_found = detectandshow(&alpr, frame, "", outputJson, regionCoords);
 
         if (!plate_found && !outputJson)
           std::cout << "No license plates found." << std::endl;
@@ -272,7 +280,7 @@ int main( int argc, const char** argv )
           std::string fullpath = filename + "/" + files[i];
           std::cout << fullpath << std::endl;
           frame = cv::imread(fullpath.c_str());
-          if (detectandshow(&alpr, frame, "", outputJson))
+          if (detectandshow(&alpr, frame, "", outputJson, regionCoords))
           {
             //while ((char) cv::waitKey(50) != 'c') { }
           }
@@ -301,7 +309,7 @@ bool is_supported_image(std::string image_file)
 }
 
 
-bool detectandshow( Alpr* alpr, cv::Mat frame, std::string region, bool writeJson)
+bool detectandshow( Alpr* alpr, cv::Mat frame, std::string region, bool writeJson, std::vector<int> regionCoords)
 {
 
   timespec startTime;
@@ -312,6 +320,11 @@ bool detectandshow( Alpr* alpr, cv::Mat frame, std::string region, bool writeJso
   {
 	  cv::Rect rectan = motiondetector.MotionDetect(&frame);
 	  if (rectan.width>0) regionsOfInterest.push_back(AlprRegionOfInterest(rectan.x, rectan.y, rectan.width, rectan.height));
+  }
+  else if (regionCoords.size() >= 4)  // 1/6/2016 adt, modified to allow region for scan from commandline
+  {
+    //Any additional integers beyond 4 are ignored. Bounds checking handled by AlprImpl::recognizeFullDetails.
+    regionsOfInterest.push_back(AlprRegionOfInterest(regionCoords[0],regionCoords[1],regionCoords[2],regionCoords[3]));
   }
   else regionsOfInterest.push_back(AlprRegionOfInterest(0, 0, frame.cols, frame.rows));
   AlprResults results;

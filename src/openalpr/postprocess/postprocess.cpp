@@ -206,6 +206,7 @@ namespace alpr
         if (allPossibilities[z].matchesTemplate)
         {
           bestChars = allPossibilities[z].letters;
+          matchesTemplate = true; // 1/8/2016 adt fixing bug where matchesTemplate never set true.
           break;
         }
       }

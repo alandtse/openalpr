@@ -226,7 +226,7 @@ namespace alpr
       // Print top words
       for (int i = 0; i < allPossibilities.size(); i++)
       {
-        cout << "Top " << topn << " Possibilities: " << allPossibilities[i].letters << " :\t" << allPossibilities[i].totalscore;
+        cout << "Top " << topn << " Possibilities: " << allPossibilities[i].letters << " :\t" << allPossibilities[i].totalscore << " match:" << allPossibilities[i].matchesTemplate;
         if (allPossibilities[i].letters == bestChars)
           cout << " <--- ";
         cout << endl;

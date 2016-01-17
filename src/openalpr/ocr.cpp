@@ -107,15 +107,16 @@ namespace alpr
               postProcessor.addLetter(string(symbol), line_idx, absolute_charpos, conf);
 
               if (this->config->debugOcr)
-                printf("charpos%d line%d: threshold %d:  symbol %s, conf: %f font: %s (index %d) size %dpx", absolute_charpos, line_idx, i, symbol, conf, fontName, fontindex, pointsize);
+                printf("charpos%d line%d: threshold %d:  symbol %s, conf: %f font: %s (index %d) size %dpx\n", absolute_charpos, line_idx, i, symbol, conf, fontName, fontindex, pointsize);
 
               bool indent = false;
               tesseract::ChoiceIterator ci(*ri);
               do
               {
                 const char* choice = ci.GetUTF8Text();
-
-                postProcessor.addLetter(string(choice), line_idx, absolute_charpos, ci.Confidence());
+                //1/17/2016 adt adding check to avoid double adding same character if ci is same as symbol. Otherwise first choice will get doubled boost when choiceIterator run.
+                if (string(symbol) != string(choice))
+                  postProcessor.addLetter(string(choice), line_idx, absolute_charpos, ci.Confidence());
 
                 if (this->config->debugOcr)
                 {

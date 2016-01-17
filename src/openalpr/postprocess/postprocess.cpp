@@ -125,11 +125,15 @@ namespace alpr
       newLetter.occurrences = 1;
       newLetter.totalscore = score;
       letters[charposition].push_back(newLetter);
+      // if (this->config->debugPostProcess)
+      //   cout << "\nInserting: " << letter << " charposition: " << charposition << " index: " << letters.size() - 1 << " occurence: 1" << " score: "  << score << endl;
     }
     else
     {
       letters[charposition][existingIndex].occurrences = letters[charposition][existingIndex].occurrences + 1;
       letters[charposition][existingIndex].totalscore = letters[charposition][existingIndex].totalscore + score;
+      // if (this->config->debugPostProcess)
+      //   cout << "\nInserting: " << letter << " charposition: " << charposition << " index: " << existingIndex << " occurence: " << letters[charposition][existingIndex].occurrences << " score: "  << score << " totalscore: " << letters[charposition][existingIndex].totalscore << endl;
     }
   }
 

@@ -114,6 +114,7 @@ namespace alpr
   {
     if (config->debugShowImages)
     {
+      namedWindow(windowName, CV_WINDOW_NORMAL); //1/19/2016 adt, adding resizeable windows
       imshow(windowName, frame);
       cv::waitKey(5);
     }

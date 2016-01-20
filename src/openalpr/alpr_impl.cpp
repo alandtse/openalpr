@@ -38,7 +38,7 @@ namespace alpr
 
     prewarp = ALPR_NULL_PTR;
 
-    
+
     // Config file or runtime dir not found.  Don't process any further.
     if (config->loaded == false)
     {

@@ -29,7 +29,7 @@ namespace alpr
   {
 
   }
-
+  
   Histogram::~Histogram()
   {
     histoImg.release();
@@ -82,24 +82,24 @@ namespace alpr
       }
     }
     
-
+    
     int histo_width = this->colHeights.size();
     int histo_height = max_col_size + 10;
-
+        
     histoImg = Mat::zeros(Size(histo_width, histo_height), CV_8U);
-
+    
     // Draw the columns onto an Mat image
     for (unsigned int col = 0; col < histoImg.cols; col++)
     {
       if (col >= this->colHeights.size())
         break;
-
+      
       int columnCount = this->colHeights[col];
       for (; columnCount > 0; columnCount--)
         histoImg.at<uchar>(histo_height - columnCount, col) = 255;
     }
 
-
+    
   }
 
   int Histogram::getLocalMinimum(int leftX, int rightX)
@@ -140,8 +140,8 @@ namespace alpr
   {
     return colHeights[x];
   }
-
-
+  
+  
 
   int Histogram::detect_peak(
       const double*   data, /* the data */
@@ -222,12 +222,12 @@ namespace alpr
     return 0;
   }
 
-
+  
   vector<pair<int, int> > Histogram::get1DHits(int yOffset)
   {
-
+    
     vector<pair<int,int> > hits;
-
+    
     bool onSegment = false;
     int curSegmentLength = 0;
     for (int col = 0; col < histoImg.cols; col++)
@@ -242,17 +242,17 @@ namespace alpr
 
       if (onSegment && (isOn == false || (col == histoImg.cols - 1)))
       {
-
+        
         // A segment just ended or we're at the very end of the row and we're on a segment
         pair<int, int> pair(col - curSegmentLength, col);
         hits.push_back(pair);
-
+        
         onSegment = false;
         curSegmentLength = 0;
       }
     }
 
-
+    
     return hits;
   }
 }

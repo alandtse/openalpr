@@ -7,7 +7,7 @@
 using namespace System;
 using namespace openalprnet::types;
 
-namespace openalprnet 
+namespace openalprnet
 {
 
 	public ref class AlprConfigNet sealed
@@ -381,17 +381,6 @@ namespace openalprnet
 			void set(float value)
 			{
 				this->m_config->segmentationMaxCharWidthvsAverage = value;
-			}
-		}
-
-		property bool MustMatchPattern {
-			bool get()
-			{
-				return this->m_config->mustMatchPattern;
-			}
-			void set(bool value)
-			{
-				this->m_config->mustMatchPattern = value;
 			}
 		}
 

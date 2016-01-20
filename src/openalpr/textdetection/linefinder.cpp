@@ -58,7 +58,7 @@ namespace alpr
 
     vector<Point> bestCharArea = getBestLine(contours, charPoints);
     vector<Point> bestLine = extendToEdges(Size(contours.width, contours.height), bestCharArea);
-
+            
     if (bestLine.size() > 0)
       linesFound.push_back(bestLine);
 
@@ -66,13 +66,13 @@ namespace alpr
     {
 
       vector<Point> next_best_line = findNextBestLine(Size(contours.width, contours.height), bestCharArea);
-
+      
       if (next_best_line.size() > 0)
       {
         vector<Point> next_best_line_extended = extendToEdges(Size(contours.width, contours.height), next_best_line);
         linesFound.push_back(next_best_line_extended);
       }
-
+      
 
     }
 
@@ -81,17 +81,17 @@ namespace alpr
   }
 
   std::vector<cv::Point> LineFinder::calculateCroppedRegionForHistogram(cv::Size imageSize, std::vector<cv::Point> charArea) {
-
+      
       LineSegment topLine(charArea[0], charArea[1]);
-
-
+                  
+      
       LineSegment new_top;
       LineSegment new_bottom;
       if (topLine.angle < 0)
       {
         float distance_from_top = topLine.p1.y;
         new_top = topLine.getParallelLine(distance_from_top);
-
+        
         float distance_from_bottom = imageSize.height - topLine.p2.y;
         new_bottom = topLine.getParallelLine(-1 * distance_from_bottom);
       }
@@ -99,31 +99,31 @@ namespace alpr
       {
         float distance_from_top = topLine.p2.y;
         new_top = topLine.getParallelLine(distance_from_top);
-
+        
         float distance_from_bottom = imageSize.height - topLine.p1.y;
         new_bottom = topLine.getParallelLine(-1 * distance_from_bottom);
       }
 
-
+      
       vector<Point> points;
       points.push_back(new_top.p1);
       points.push_back(new_top.p2);
       points.push_back(new_bottom.p2);
       points.push_back(new_bottom.p1);
-
+      
       return points;
   }
-
-
+  
+  
   std::vector<cv::Point> LineFinder::findNextBestLine(cv::Size imageSize, std::vector<cv::Point> bestLine) {
 
       // Pull out a crop of the plate around the line we know about,
       // then do a horizontal histogram on all the thresholds.  Find the other line based on that histogram
        
       vector<Point> histogramArea = calculateCroppedRegionForHistogram(imageSize, bestLine);
-
+      
       Size cropped_quad_size(distanceBetweenPoints(histogramArea[0], histogramArea[1]), distanceBetweenPoints(histogramArea[0], histogramArea[3]));
-
+      
       Mat mask = Mat::zeros(cropped_quad_size, CV_8U);
       bitwise_not(mask, mask);
 
@@ -135,62 +135,62 @@ namespace alpr
       outputQuad.push_back(Point2f(cropped_quad_size.width,0));
       outputQuad.push_back(Point2f(cropped_quad_size.width,cropped_quad_size.height));
       outputQuad.push_back(Point2f(0,cropped_quad_size.height));
-
+      
       int pxLeniency = 2;
-
+      
       Mat trans_matrix = getPerspectiveTransform(inputQuad, outputQuad);
       vector<Point2f> orig_best_line;
       for (int i = 0; i < bestLine.size(); i++)
         orig_best_line.push_back(bestLine[i]);
       vector<Point2f> transformed_best_line;
       perspectiveTransform(orig_best_line, transformed_best_line, trans_matrix);
-
+      
       int transformed_best_line_start = round(transformed_best_line[0].y);
       int transformed_best_line_end = round(transformed_best_line[3].y);
       int transformed_best_line_width = transformed_best_line_end - transformed_best_line_start;
       int transformed_best_line_variance = (int) ((float) transformed_best_line_width) * 0.25;
-
-
+      
+      
 
       float lowest_width_diff = 99999999999;
       int best_secondline_index = -1;
       int best_secondline_threshold = -1;
       int best_secondline_top_pixel_offset_from_bestline_top = 0;
       int best_secondline_bottom_pixel_offset_from_bestline_top = 0;
-
+      
       for (unsigned int i = 0; i < pipeline_data->thresholds.size(); i++)
       {
         Mat warpedImage = Mat::zeros(cropped_quad_size, CV_8U);
-        warpPerspective(pipeline_data->thresholds[i], warpedImage,
-                        trans_matrix,
+        warpPerspective(pipeline_data->thresholds[i], warpedImage, 
+                        trans_matrix, 
                         cropped_quad_size);
-
+        
 
 
         HistogramHorizontal histogram(warpedImage, mask);
-
+        
         vector<pair<int, int> > histogram_hits = histogram.get1DHits(pxLeniency);
-
+        
         // First find the histogram blob for the "best line" that we already found
         // Do this by comparing the "transformed_best_line" points to the histogram_hits
-
-
+        
+        
         int best_line_index = -1;
         for (unsigned int hitidx = 0; hitidx < histogram_hits.size(); hitidx++)
         {
           pair<int,int> hit = histogram_hits[hitidx];
-
+          
           if ((hit.first >= transformed_best_line_start - transformed_best_line_variance) &&
               (hit.first <= transformed_best_line_start + transformed_best_line_variance) &&
               (hit.second >= transformed_best_line_end - transformed_best_line_variance) &&
               (hit.second <= transformed_best_line_end + transformed_best_line_variance))
-          {
+          {           
             best_line_index = hitidx;
             break;
           }
-
+                    
         }
-
+        
         if (best_line_index < 0)  // Best line not found on this threshold...
         {
           if (pipeline_data->config->debugCharAnalysis)
@@ -200,31 +200,31 @@ namespace alpr
 
         if (pipeline_data->config->debugCharAnalysis)
           cout << "Found a multiline best line " << histogram_hits[best_line_index].first << " -> " << histogram_hits[best_line_index].second << endl;
-
+        
         // Now look at all other hits and find one that is above or below our best line and has the correct text height ratio
         // I'm either looking for a bigger line above or a smaller line below (or vice versa, or two same sized lines depending on the plate config)
-
+        
         // Assume maximum of two lines per plate for now
-
+        
         // TODO: Use char_whitespace_between_lines_mm to score lines better
-
+        
         //float best_line_width = histogram_hits[best_line_index].second - histogram_hits[best_line_index].first;
         if (pipeline_data->config->debugCharAnalysis)
           cout << "Ideal calculation: " << pipeline_data->config->charHeightMM[0] << " : " << pipeline_data->config->charHeightMM[1] << " - " << transformed_best_line_width << endl;
-
+        
         float ideal_above_size = (pipeline_data->config->charHeightMM[0] / pipeline_data->config->charHeightMM[1]) * transformed_best_line_width;
         float ideal_below_size = (pipeline_data->config->charHeightMM[1] / pipeline_data->config->charHeightMM[0]) * transformed_best_line_width;
-
+        
         float max_deviation_percent = 0.30;
-
-
+        
+        
         for (unsigned int hitidx = 0; hitidx < histogram_hits.size(); hitidx++)
         {
           if (hitidx == best_line_index)
             continue;
-
+          
           float hit_width = histogram_hits[hitidx].second -  histogram_hits[hitidx].first;
-
+                    
           float ideal_width;
           if (histogram_hits[hitidx].second <= histogram_hits[best_line_index].first)
             ideal_width = ideal_above_size;
@@ -232,10 +232,10 @@ namespace alpr
             ideal_width = ideal_below_size;
           else
             assert(false);
-
+          
           if (pipeline_data->config->debugCharAnalysis)
             cout << "Hit Width: " << hit_width << " -- ideal width: " << ideal_width << endl;
-
+          
           if ((hit_width >= ideal_width * (1-max_deviation_percent)) &&
               (hit_width <= ideal_width * (1+max_deviation_percent)))
           {
@@ -249,33 +249,33 @@ namespace alpr
               best_secondline_bottom_pixel_offset_from_bestline_top = (histogram_hits[best_line_index].first - histogram_hits[hitidx].second);
             }
           }
-
-
+ 
+            
         }
-
-
+          
+        
       }
-
+      
       Mat debugImg(pipeline_data->thresholds[1].size(), pipeline_data->thresholds[1].type());
       pipeline_data->thresholds[1].copyTo(debugImg);
       cvtColor(debugImg, debugImg, CV_GRAY2BGR);
-
+      
       LineSegment orig_top_line(bestLine[0], bestLine[1]);
       LineSegment secondline_top = orig_top_line.getParallelLine(best_secondline_top_pixel_offset_from_bestline_top + 1);
       LineSegment secondline_bottom = orig_top_line.getParallelLine(best_secondline_bottom_pixel_offset_from_bestline_top - 1);
-
+      
       line(debugImg, orig_top_line.p1, orig_top_line.p2, Scalar(0,0,255), 2);
       line(debugImg, secondline_top.p1, secondline_top.p2, Scalar(255,255,0), 2);
       line(debugImg, secondline_bottom.p1, secondline_bottom.p2, Scalar(0,255,0), 2);
-
+      
       if (pipeline_data->config->debugCharAnalysis)
       {
         cout << "Multiline = " << secondline_top.str() << " -- " << secondline_bottom.str() << endl;
         cout << "Multiline winner is: " << best_secondline_index << " on threshold " << best_secondline_threshold << endl;
       }
-
+            
       vector<cv::Point> response;
-
+      
       if (best_secondline_index >= 0)
       {
         response.push_back(secondline_top.p1);
@@ -283,7 +283,7 @@ namespace alpr
         response.push_back(secondline_bottom.p1);
         response.push_back(secondline_bottom.p2);
       }
-
+      
       return response;
   }
 
@@ -420,16 +420,16 @@ namespace alpr
   }
 
   std::vector<cv::Point> LineFinder::extendToEdges(cv::Size imageSize, std::vector<cv::Point> charArea) {
-
+    
     vector<Point> extended;
-
-
+    
+            
     if (charArea.size() < 4)
       return extended;
-
+            
     LineSegment top(charArea[0], charArea[1]);
     LineSegment bottom(charArea[3], charArea[2]);
-
+    
     Point topLeft 		= Point(0, top.getPointAt(0) );
     Point topRight 		= Point(imageSize.width, top.getPointAt(imageSize.width));
     Point bottomRight 	= Point(imageSize.width, bottom.getPointAt(imageSize.width));
@@ -439,10 +439,10 @@ namespace alpr
     extended.push_back(topRight);
     extended.push_back(bottomRight);
     extended.push_back(bottomLeft);
-
+    
     return extended;
   }
-
+  
   CharPointInfo::CharPointInfo(vector<Point> contour, int index) {
 
 
@@ -462,5 +462,5 @@ namespace alpr
     this->bottom = Point(x,y);
 
   }
-
+  
 }

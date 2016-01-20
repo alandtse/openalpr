@@ -32,7 +32,7 @@ namespace alpr
     const string MINIMUM_TESSERACT_VERSION = "3.03";
 
     this->config = config;
-    
+
     if (cmpVersion(tesseract.Version(), MINIMUM_TESSERACT_VERSION.c_str()) < 0)
     {
       std::cerr << "Warning: You are running an unsupported version of Tesseract." << endl;
@@ -54,7 +54,7 @@ namespace alpr
   void OCR::performOCR(PipelineData* pipeline_data)
   {
     const int SPACE_CHAR_CODE = 32;
-    
+
     timespec startTime;
     getTimeMonotonic(&startTime);
 
@@ -75,8 +75,8 @@ namespace alpr
     {
       // Make it black text on white background
       bitwise_not(pipeline_data->thresholds[i], pipeline_data->thresholds[i]);
-      tesseract.SetImage((uchar*) pipeline_data->thresholds[i].data, 
-                          pipeline_data->thresholds[i].size().width, pipeline_data->thresholds[i].size().height, 
+      tesseract.SetImage((uchar*) pipeline_data->thresholds[i].data,
+                          pipeline_data->thresholds[i].size().width, pipeline_data->thresholds[i].size().height,
                           pipeline_data->thresholds[i].channels(), pipeline_data->thresholds[i].step1());
 
       int absolute_charpos = 0;
@@ -128,7 +128,7 @@ namespace alpr
                 indent = true;
               }
               while(ci.Next());
-              
+
             }
 
             if (this->config->debugOcr)
@@ -139,7 +139,7 @@ namespace alpr
           while((ri->Next(level)));
 
           delete ri;
-          
+
           absolute_charpos++;
         }
       }

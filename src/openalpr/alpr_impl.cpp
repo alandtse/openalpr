@@ -38,7 +38,7 @@ namespace alpr
 
     prewarp = ALPR_NULL_PTR;
 
-
+    
     // Config file or runtime dir not found.  Don't process any further.
     if (config->loaded == false)
     {
@@ -292,7 +292,7 @@ namespace alpr
       if (!pipeline_data.disqualified)
       {
         AlprPlateResult plateResult;
-        
+
         plateResult.country = config->country;
 
         // If there's only one pattern for a country, use it.  Otherwise use the default

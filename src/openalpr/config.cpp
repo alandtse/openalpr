@@ -244,7 +244,7 @@ namespace alpr
 
     charHeightMM = getAllFloats(ini, "", "char_height_mm");
     charWidthMM = getAllFloats(ini, "", "char_width_mm");
-
+    
     // Compute the average char height/widths
     avgCharHeightMM = 0;
     avgCharWidthMM = 0;

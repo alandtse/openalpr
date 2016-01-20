@@ -76,8 +76,8 @@ namespace alpr
         cout << "LINE " << lineidx << ": avgCharHeight: " << avgCharHeight << " - height_to_width_ratio: " << height_to_width_ratio << endl;
         cout << "LINE " << lineidx << ": avgCharWidth: " << avgCharWidth << endl;
       }
-
-
+      
+      
       removeSmallContours(pipeline_data->thresholds, avgCharHeight, pipeline_data->textLines[lineidx]);
 
       // Do the histogram analysis to figure out char regions
@@ -104,7 +104,7 @@ namespace alpr
 //
 //          string label = "threshold: " + toString(i);
 //          allHistograms.push_back(addLabel(histoCopy, label));
-//
+//          
 //          std::cout << histoCopy.cols << " x " << histoCopy.rows << std::endl;
 //        }
 
@@ -158,7 +158,7 @@ namespace alpr
 
       Mat edge_mask = filterEdgeBoxes(pipeline_data->thresholds, candidateBoxes, avgCharWidth, avgCharHeight);
       bitwise_and(edge_filter_mask, edge_mask, edge_filter_mask);
-
+      
       candidateBoxes = combineCloseBoxes(candidateBoxes);
 
       candidateBoxes = filterMostlyEmptyBoxes(pipeline_data->thresholds, candidateBoxes);
@@ -186,7 +186,7 @@ namespace alpr
         displayImage(config, "Segmentation Clean Filters", cleanImgDash);
       }
     }
-
+    
     // Apply the edge mask (left and right ends) after all lines have been processed.
     for (unsigned int i = 0; i < pipeline_data->thresholds.size(); i++)
     {
@@ -307,7 +307,7 @@ namespace alpr
     for (int row = 0; row < histoImg.rows; row++)
     {
       vector<Rect> validBoxes;
-
+      
       int pxLeniency = 0;
       vector<Rect> allBoxes = convert1DHitsToRect(histogram.get1DHits(pxLeniency), top, bottom);
 
@@ -432,22 +432,22 @@ namespace alpr
     // Don't bother combining if there are 2 or fewer characters
     if (charBoxes.size() <= 2)
       return charBoxes;
-
+    
     // First find the median char gap (the space from midpoint to midpoint of chars)
-
+    
     vector<int> char_gaps;
     for (unsigned int i = 0; i < charBoxes.size(); i++)
     {
       if (i == charBoxes.size() - 1)
         break;
-
+      
       // the space between charbox i and i+1
       char_gaps.push_back(getCharGap(charBoxes[i], charBoxes[i+1]));
     }
-
+        
     int median_char_gap = median(char_gaps.data(), char_gaps.size());
-
-
+    
+    
     // Find the second largest char box.  Should help ignore a big outlier
     vector<int> char_sizes;
     float biggestCharWidth;
@@ -458,8 +458,8 @@ namespace alpr
 
     std::sort(char_sizes.begin(), char_sizes.end());
     biggestCharWidth = char_sizes[char_sizes.size() - 2];
-
-
+    
+    
     vector<Rect> newCharBoxes;
 
     for (unsigned int i = 0; i < charBoxes.size(); i++)
@@ -473,23 +473,23 @@ namespace alpr
 
       float left_gap;
       float right_gap;
-
+      
       if (i == 0)
         left_gap = 999999999999;
       else
         left_gap = getCharGap(charBoxes[i-1], charBoxes[i]);
-
+      
       right_gap = getCharGap(charBoxes[i], charBoxes[i+1]);
-
+      
       int min_gap = (int) ((float)median_char_gap) * 0.75;
       int max_gap = (int) ((float)median_char_gap) * 1.25;
-
+      
       int max_width = (int) ((float)biggestCharWidth) * 1.2;
-
+      
       bool has_good_gap = (left_gap >= min_gap && left_gap <= max_gap) || (right_gap >= min_gap && right_gap <= max_gap);
+      
 
-
-
+      
       if (has_good_gap && bigWidth <= max_width)
       {
         Rect bigRect(charBoxes[i].x, charBoxes[i].y, bigWidth, charBoxes[i].height);
@@ -798,7 +798,7 @@ namespace alpr
 
     Mat empty_mask = Mat::zeros(thresholds[0].size(), CV_8U);
     bitwise_not(empty_mask, empty_mask);
-
+    
     //
     // Pay special attention to the edge boxes.  If it's a skinny box, and the vertical height extends above our bounds... remove it.
     //while (charBoxes.size() > 0 && charBoxes[charBoxes.size() - 1].width < MIN_SEGMENT_WIDTH_EDGES)
@@ -896,7 +896,7 @@ namespace alpr
     {
       Mat mask = Mat::zeros(thresholds[0].size(), CV_8U);
       bitwise_not(mask, mask);
-
+      
       rectangle(mask, Point(0, charRegions[0].y), Point(leftEdge, charRegions[0].y+charRegions[0].height), Scalar(0,0,0), -1);
       rectangle(mask, Point(rightEdge, charRegions[0].y), Point(mask.cols, charRegions[0].y+charRegions[0].height), Scalar(0,0,0), -1);
 
@@ -944,7 +944,7 @@ namespace alpr
         for (unsigned int z = 0; z < imgDbgCleanStages.size(); z++)
           fillMask(imgDbgCleanStages[z], invertedMask, Scalar(0,0,255));
       }
-
+      
       return mask;
     }
 
@@ -1070,16 +1070,15 @@ namespace alpr
   std::vector<cv::Rect> CharacterSegmenter::convert1DHitsToRect(vector<pair<int, int> > hits, LineSegment top, LineSegment bottom) {
 
     vector<Rect> boxes;
-
-
+    
     for (unsigned int i = 0; i < hits.size(); i++)
     {
       Point topLeft = Point(hits[i].first, top.getPointAt(hits[i].first) - 1);
       Point botRight = Point(hits[i].second, bottom.getPointAt(hits[i].second) + 1);
-
+      
       boxes.push_back(Rect(topLeft, botRight));
     }
-
+    
     return boxes;
   }
 

@@ -47,7 +47,8 @@ void EndToEndTest::runTest(string country, vector<std::string> files)
     string fullimgpath = inputDir + "/" + imgfile;
     
     benchmarkResult.imageName = imgfile;
-    
+    benchmarkResult.plateNumber = plate_number; //1/21/2016 adt, adding plateNumber for results output
+
     Mat frame = imread( fullimgpath.c_str() );
 
     Rect actualPlateRect(x, y, w, h);
@@ -87,6 +88,8 @@ void EndToEndTest::runTest(string country, vector<std::string> files)
     {
       //cout << "Actual: " << plate_number << endl;
       //cout << "Candidate: " << recognitionDetails.results[z].bestPlate.characters << endl;
+      benchmarkResult.topPlate = recognitionDetails.results.plates[z].bestPlate.characters; // 1/21/2016 adt, adding for results output
+
       if (recognitionDetails.results.plates[z].bestPlate.characters == plate_number)
       {
 	benchmarkResult.topResultCorrect = true;
@@ -128,13 +131,12 @@ void EndToEndTest::runTest(string country, vector<std::string> files)
   ofstream data;
   string outputResultsFile = outputDir + "/results.txt";
   data.open(outputResultsFile.c_str());
-  
-  
-  data << setfill(' ') << setw(image_name_padding) << "Image name" << setw(20) << "Detected Plate" << setw(20) << "# False Detections" << setw(20) << "Top Result Correct" << setw(20) << "Top 10 Correct" << setw(20) << "# False Results" << endl;
+  // 1/21/2016 adt, modified output results to include correct and top plate
+  data << setfill(' ') << setw(image_name_padding) << "Image name" << setw(20) << "Correct Plate" << setw(20) << "Top Plate" <<setw(20) <<"Detected Plate" << setw(20) << "# False Detections" << setw(20) << "Top Result Correct" << setw(20) << "Top 10 Correct" << setw(20) << "# False Results" << endl;
   for (int i = 0; i < benchmarkResults.size(); i++)
   {
     EndToEndBenchmarkResult br = benchmarkResults[i];
-    data << setfill(' ') << setw(image_name_padding) << br.imageName << setw(20) << br.detectedPlate << setw(20) << br.detectionFalsePositives << setw(20) << br.topResultCorrect << setw(20) << br.top10ResultCorrect << setw(20) << br.resultsFalsePositives << endl;
+    data << setfill(' ') << setw(image_name_padding) << br.imageName << setw(20) << br.plateNumber << setw(20) << br.topPlate << setw(20) << br.detectedPlate << setw(20) << br.detectionFalsePositives << setw(20) << br.topResultCorrect << setw(20) << br.top10ResultCorrect << setw(20) << br.resultsFalsePositives << endl;
   }
   data.close();
   

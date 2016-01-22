@@ -29,6 +29,8 @@ class EndToEndBenchmarkResult {
     EndToEndBenchmarkResult()
     {
     this->imageName = "";
+    this->plateNumber = ""; //1/21/2016 adt, adding plateNumber for results output
+    this->topPlate = "";
     this->detectedPlate = false;
     this->topResultCorrect = false;
     this->top10ResultCorrect = false;
@@ -37,6 +39,8 @@ class EndToEndBenchmarkResult {
     }
     
     std::string imageName;
+    std::string plateNumber; //1/21/2016 adt, adding plateNumber for results output
+    std::string topPlate; // 1/21/2016 adt, adding for results output
     bool detectedPlate;
     bool topResultCorrect;
     bool top10ResultCorrect;

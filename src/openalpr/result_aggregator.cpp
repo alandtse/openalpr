@@ -85,7 +85,7 @@ namespace alpr
           best_index = k;
         }
       }
-
+      cout << "Cluster[" << i << "] BestPlate:" << clusters[i][best_index].bestPlate.characters << " confidence: " << clusters[i][best_index].bestPlate.overall_confidence << endl;
       response.results.plates.push_back(clusters[i][best_index]);
     }
 
@@ -104,7 +104,7 @@ namespace alpr
       {
         AlprPlateResult plate = all_results[i].results.plates[plate_id];
 
-        int cluster_index = overlaps(plate, clusters);
+        int cluster_index = overlaps(plate, clusters, 2); //1/24/2016 adt, setting maxLevenStein distance of 2 for overloaded function
         if (cluster_index < 0)
         {
           vector<AlprPlateResult> new_cluster;
@@ -187,6 +187,64 @@ namespace alpr
     }
 
 
+    return -1;
+  }
+  //1/24/2016 adt, adding overlaps that takes Levenshtein_distance to add to a cluster.  This is primarily to allow reuse of overlaps
+  // where the plate may have moved beyond the overlap but is sufficiently close. This will start from the latest entries and only process images from the last frame for each cluster.
+  // Returns the cluster ID if the plate overlaps or if no overlap, Levenshtein distance is less than maxLDistance.  Otherwise returns -1
+  int ResultAggregator::overlaps(AlprPlateResult plate,
+                                 std::vector<std::vector<AlprPlateResult> > clusters,
+                                 int maxLDistance)
+  {
+    // Check the center positions to see how close they are to each other
+    // Also compare the size.  If it's much much larger/smaller, treat it as a separate cluster
+
+    PlateShapeInfo psi = getShapeInfo(plate);
+    AlprPlateResult plateResult;
+    int distance;
+
+    for (unsigned int i = clusters.size(); i-- > 0;) //1/24/2016 adt,reverse order so latest frames first
+    {
+      for (unsigned int k = clusters[i].size(); k-- > 0;) 
+      {
+        plateResult = clusters[i][k];
+          
+        PlateShapeInfo cluster_shapeinfo = getShapeInfo(plateResult);
+        
+        int diffx = abs(psi.center.x - cluster_shapeinfo.center.x);
+        int diffy = abs(psi.center.y - cluster_shapeinfo.center.y);
+
+        // divide the larger plate area by the smaller plate area to determine a match
+        float area_diff;
+        if (psi.area > cluster_shapeinfo.area)
+          area_diff = psi.area / cluster_shapeinfo.area;
+        else
+          area_diff = cluster_shapeinfo.area / psi.area;
+
+        int max_x_diff = (psi.max_width + cluster_shapeinfo.max_width) / 2;
+        int max_y_diff = (psi.max_height + cluster_shapeinfo.max_height) / 2;
+
+        float max_area_diff = 4.0;
+        // Consider it a match if center diffx/diffy are less than the average height
+        // the area is not more than 4x different
+        distance = levenshteinDistance(plate.bestPlate.characters, plateResult.bestPlate.characters, maxLDistance+1);
+        if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
+          cout << plate.bestPlate.characters << " overlap added to cluster[" << i << "]\t" << plateResult.bestPlate.characters << "\t" << distance << endl;
+          return i;
+        }
+        //Do a comparison to the last plate in the cluster for levenshteinDistance match
+        if (distance <= maxLDistance)
+        {
+          //cout << "Levenshtein match: " << plate.bestPlate.characters << "\t" << plateResult.bestPlate.characters << "\t" << levenshteinDistance(plateResult.bestPlate.characters, plate.bestPlate.characters,10) << endl;
+          cout << plate.bestPlate.characters << " Levenshtein added to cluster[" << i << "]\t" << plateResult.bestPlate.characters << "\t" << distance << endl;
+          return i;
+        }
+      }
+
+
+    }
+
+    cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]\t" << endl;
     return -1;
   }
 }

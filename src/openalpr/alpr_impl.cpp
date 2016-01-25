@@ -240,7 +240,51 @@ namespace alpr
     AlprRecognizers country_recognizers = recognizers[config->country];
     timespec startTime;
     getTimeMonotonic(&startTime);
-
+    //1/23/2016 adt, adding historical data check.  If priorResults is not empty and image size is the same
+    bool usePriorResults = (!priorResults.empty() && (priorResults.back().img_width == colorImg.cols && priorResults.back().img_height == colorImg.rows));
+    cout << "usePriorResults: " << usePriorResults << " size: " << priorResults.size() << endl;
+    //1/24/2016 adt, print out all results to determine best results for cluster.
+    if (!priorResults.empty()){
+      // cout << "imageWidth: " << colorImg.cols << " imageHeight: " << colorImg.rows << endl;
+      ResultAggregator aggregator;
+      AlprFullDetails tempFull, aggregate;
+      std::string lastPlate, thisPlate;
+      for (int i = 0; i<priorResults.size(); i++){
+        //note this is cheating in that it assumes all AlprResults only are returning 1 plate, TODO: fix this.
+        lastPlate = (i == 0)? "":priorResults[i-1].plates[0].bestPlate.characters;
+        thisPlate = priorResults[i].plates[0].bestPlate.characters;
+        cout << "prior[" << i << "]:\t" << 
+            "x["<< min (priorResults[i].plates[0].plate_points[0].x, priorResults[i].plates[0].plate_points[3].x) << "," <<
+            max (priorResults[i].plates[0].plate_points[1].x, priorResults[i].plates[0].plate_points[2].x) << "]" << 
+            "y["<< min (priorResults[i].plates[0].plate_points[0].y, priorResults[i].plates[0].plate_points[1].y) << "," <<
+            max (priorResults[i].plates[0].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
+            // priorResults[i].plates[0].plate_points[0].x << "," <<priorResults[i].plates[0].plate_points[0].y << ";" << 
+            // priorResults[i].plates[0].plate_points[1].x << "," <<priorResults[i].plates[0].plate_points[1].y << ";" << 
+            // priorResults[i].plates[0].plate_points[2].x << "," <<priorResults[i].plates[0].plate_points[2].y << ";" << 
+            // priorResults[i].plates[0].plate_points[3].x << "," <<priorResults[i].plates[0].plate_points[3].y << ";" << 
+        "\t"<< thisPlate << "\t\t" << priorResults[i].plates[0].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<< endl;
+        tempFull.results = priorResults[i];
+        aggregator.addResults(tempFull);    
+      }
+      aggregate = aggregator.getAggregateResults();
+      AlprResults aggregateResults = aggregate.results;
+      for (int i = 0; i<aggregateResults.plates.size(); i++){
+        lastPlate = (i == 0)? "":aggregateResults.plates[i-1].bestPlate.characters;
+        thisPlate = aggregateResults.plates[i].bestPlate.characters;
+        cout << "aggregate[" <<i <<"]:\t" << 
+          "x["<< min (aggregateResults.plates[i].plate_points[0].x, aggregateResults.plates[i].plate_points[3].x) << "," <<
+          max (aggregateResults.plates[i].plate_points[1].x, aggregateResults.plates[i].plate_points[2].x) << "]" << 
+          "y["<< min (aggregateResults.plates[i].plate_points[0].y, aggregateResults.plates[i].plate_points[1].y) << "," <<
+          max (aggregateResults.plates[i].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
+          // aggregateResults.plates[i].plate_points[0].x << "," <<aggregateResults.plates[i].plate_points[0].y << ";" << 
+          // aggregateResults.plates[i].plate_points[1].x << "," <<aggregateResults.plates[i].plate_points[1].y << ";" << 
+          // aggregateResults.plates[i].plate_points[2].x << "," <<aggregateResults.plates[i].plate_points[2].y << ";" << 
+          // aggregateResults.plates[i].plate_points[3].x << "," <<aggregateResults.plates[i].plate_points[3].y << ";" << 
+      "\t"<< aggregateResults.plates[i].bestPlate.characters << "\t\t" << aggregateResults.plates[i].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<<endl;
+      // cout << "priorResultsWidth: " << priorResults.back().img_width << " priorResultsHeight: " << priorResults.back().img_height << endl;
+      cout << toJson(aggregateResults) << endl;
+      }
+    }
     vector<PlateRegion> warpedPlateRegions;
     // Find all the candidate regions
     if (config->skipDetection == false)

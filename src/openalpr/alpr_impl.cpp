@@ -66,7 +66,7 @@ namespace alpr
     setDefaultRegion("");
 
     prewarp = new PreWarp(config);
-
+    frame_number = 0; //1/24/2016, adt adding frame_number for historical measuring
     timespec endTime;
     getTimeMonotonic(&endTime);
     if (config->debugTiming)
@@ -140,7 +140,7 @@ namespace alpr
     for (unsigned int i = 0; i < config->loaded_countries.size(); i++)
     {
       if (config->debugGeneral)
-        cout << "Analyzing: " << config->loaded_countries[i] << endl;
+        cout << "Analyzing: " << config->loaded_countries[i] << " frame_number: " << frame_number << endl;
 
       config->setCountry(config->loaded_countries[i]);
       AlprFullDetails sub_results = analyzeSingleCountry(img, grayImg, warpedRegionsOfInterest);
@@ -148,10 +148,15 @@ namespace alpr
       sub_results.results.epoch_time = start_time;
       sub_results.results.img_width = img.cols;
       sub_results.results.img_height = img.rows;
+      sub_results.results.frame_number = frame_number;  //1/24/2016, adt update AlprResult frame_number
 
       aggregator.addResults(sub_results);
     }
     response = aggregator.getAggregateResults();
+    //1/23/2016 adt, save response into priorResults
+    if (!response.results.plates.empty())
+      priorResults.push_back(response.results);
+    frame_number++; //1/24/2016, adt increment frame_number after processing
 
     timespec endTime;
     getTimeMonotonic(&endTime);
@@ -513,6 +518,7 @@ namespace alpr
     cJSON_AddStringToObject(root,"data_type",	"alpr_results"	  );
 
     cJSON_AddNumberToObject(root,"epoch_time",	results.epoch_time	  );
+    cJSON_AddNumberToObject(root,"frame_number",	results.frame_number	  ); //1/24/2016 adt, adding frame_number to json result
     cJSON_AddNumberToObject(root,"img_width",	results.img_width	  );
     cJSON_AddNumberToObject(root,"img_height",	results.img_height	  );
     cJSON_AddNumberToObject(root,"processing_time_ms", results.total_processing_time_ms );
@@ -606,6 +612,7 @@ namespace alpr
 
     int version = cJSON_GetObjectItem(root, "version")->valueint;
     allResults.epoch_time = (int64_t) cJSON_GetObjectItem(root, "epoch_time")->valuedouble;
+    allResults.frame_number = (int64_t) cJSON_GetObjectItem(root, "frame_number")->valuedouble; //1/24/2016, adt adding frame_number to json
     allResults.img_width = cJSON_GetObjectItem(root, "img_width")->valueint;
     allResults.img_height = cJSON_GetObjectItem(root, "img_height")->valueint;
     allResults.total_processing_time_ms = cJSON_GetObjectItem(root, "processing_time_ms")->valueint;

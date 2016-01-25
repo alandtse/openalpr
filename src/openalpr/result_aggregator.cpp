@@ -60,6 +60,8 @@ namespace alpr
 
 
     response.results.epoch_time = all_results[0].results.epoch_time;
+    response.results.frame_number = all_results.back().results.frame_number; //1/24/2016 adt, adding frame_number; select last added result
+    //cout << "Set frame_number: " << response.results.frame_number << endl;
     response.results.img_height = all_results[0].results.img_height;
     response.results.img_width = all_results[0].results.img_width;
     response.results.total_processing_time_ms = all_results[0].results.total_processing_time_ms;

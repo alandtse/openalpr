@@ -109,7 +109,10 @@ namespace alpr
     private:
 
       std::map<std::string, AlprRecognizers> recognizers;
-
+      //1/23/2016 adt, adding historical values to allow video tracking
+      std::vector<AlprResults> priorResults;
+      int64_t frame_number;
+      
       PreWarp* prewarp;
 
       int topN;

@@ -105,16 +105,6 @@ namespace alpr
 
     int64_t start_time = getEpochTimeMs();
 
-    // Fix regions of interest in case they extend beyond the bounds of the image
-    for (unsigned int i = 0; i < regionsOfInterest.size(); i++)
-      regionsOfInterest[i] = expandRect(regionsOfInterest[i], 0, 0, img.cols, img.rows);
-
-    for (unsigned int i = 0; i < regionsOfInterest.size(); i++)
-    {
-      response.results.regionsOfInterest.push_back(AlprRegionOfInterest(regionsOfInterest[i].x, regionsOfInterest[i].y,
-              regionsOfInterest[i].width, regionsOfInterest[i].height));
-    }
-
     //Stop processing early if no image
     if (!img.data)
     {

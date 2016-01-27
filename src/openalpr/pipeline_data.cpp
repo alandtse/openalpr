@@ -19,12 +19,13 @@ namespace alpr
       grayImage = colorImage;
     }
 
-    this->init(colorImage, grayImage, regionOfInterest, config);
+    this->init(colorImage, grayImage, expandRect(regionOfInterest, 0, 0, colorImage.cols, colorImage.rows), config); //1/26/2016 adt, modified to fix out-of-bounds regions
   }
   
   PipelineData::PipelineData(Mat colorImage, Mat grayImg, Rect regionOfInterest, Config* config)
   {
-    this->init(colorImage, grayImg, regionOfInterest, config);
+    this->init(colorImage, grayImg, expandRect(regionOfInterest, 0, 0, colorImage.cols, colorImage.rows), config); //1/26/2016 adt, modified to fix out-of-bounds regions
+
   }
 
   PipelineData::~PipelineData()

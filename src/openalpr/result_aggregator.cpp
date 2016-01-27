@@ -247,4 +247,66 @@ namespace alpr
     cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]\t" << endl;
     return -1;
   }
+  //1/25/2016 adt, calculate the next potential plate regions for each cluster based on frame in cluster.  If there is
+  //only one frame, will assume no movement.  Since clusters do not contain frame_numbers, this function assumes the last 2 plateResults
+  //in each cluster are immediately preceding frames.
+  //Note: Average over two frames appears to have minimal benefit.
+  std::vector<PlateRegion> ResultAggregator::calcNextPlateRegions(){
+    std::vector<PlateRegion> prs;
+    PlateRegion pr;
+    vector<vector<AlprPlateResult> > clusters = findClusters();
+    for (unsigned int i = clusters.size(); i-- > 0;) //start from last clusters because most likely to exist
+    {
+      int lastPlatex = -1,
+        lastPlatey = -1,
+        lastWidth = -1,
+        lastHeight = -1;
+      for (unsigned int k = clusters[i].size(); k-- > 0;) 
+      {
+        AlprPlateResult plateResult = clusters[i][k];
+        int x0 = plateResult.plate_points[0].x, 
+          x1 = plateResult.plate_points[1].x, 
+          x2 = plateResult.plate_points[2].x, 
+          x3 = plateResult.plate_points[3].x, 
+          y0 = plateResult.plate_points[0].y, 
+          y1 = plateResult.plate_points[1].y, 
+          y2 = plateResult.plate_points[2].y, 
+          y3 = plateResult.plate_points[3].y,
+          minx = min(x0, x3),
+          miny = min(y0, y1),
+          maxx = max(x1, x2),
+          maxy = max(y2, y3),
+          width = maxx - minx,
+          height = maxy - miny;
+         
+        if (clusters[i].size() == 1) {// nothing to compare, just return last rectangle.      
+          cout << "Cluster["<<i<<"] returning non-moving rectangle " << minx << " " << miny << " " << width << " " << height << endl;          
+          pr.rect = cv::Rect(minx, miny , width, height);
+          prs.push_back(pr);
+          break;
+        }else if (lastPlatex >=0) { //we already processed one frame, so calculate new coords based on velocities 
+          float widthProportion = lastWidth,//(abs(lastWidth-width)/width)*lastWidth, TODO: Fix proportional sizing
+            heightProportion = lastHeight;//(abs(lastHeight-height)/height)*lastHeight;
+          cout << lastPlatex << "," <<lastWidth <<"," << minx << "," <<width <<  "," <<heightProportion << endl;
+          cout << lastPlatey << "," <<lastHeight <<"," << miny << "," <<height << "," <<heightProportion << endl;
+
+          int newx =  (minx + width/2)- (lastPlatex + lastWidth/2) + lastPlatex,
+          newy =  (miny + height/2) - (lastPlatey + lastHeight/2)+ lastPlatey,
+          newWidth = round(widthProportion),
+          newHeight = round(heightProportion);
+          cout << "Cluster["<<i<<"] returning moving rectangle " << newx << " " << newy << " " << newWidth << " " << newHeight << endl;          
+          pr.rect = cv::Rect(newx, newy, newWidth, newHeight);
+          prs.push_back(pr);
+          break;
+        }else{ // still processing last frame, need to grab frame before it
+        lastPlatex = minx;
+        lastPlatey = miny;
+        lastWidth = width;
+        lastHeight = height;
+        }   
+      }
+    }
+    return prs;
+  }
+
 }

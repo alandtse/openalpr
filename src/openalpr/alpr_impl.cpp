@@ -253,7 +253,7 @@ namespace alpr
         //note this is cheating in that it assumes all AlprResults only are returning 1 plate, TODO: fix this.
         lastPlate = (i == 0)? "":priorResults[i-1].plates[0].bestPlate.characters;
         thisPlate = priorResults[i].plates[0].bestPlate.characters;
-        cout << "prior[" << i << "]:\t" << 
+        cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
             "x["<< min (priorResults[i].plates[0].plate_points[0].x, priorResults[i].plates[0].plate_points[3].x) << "," <<
             max (priorResults[i].plates[0].plate_points[1].x, priorResults[i].plates[0].plate_points[2].x) << "]" << 
             "y["<< min (priorResults[i].plates[0].plate_points[0].y, priorResults[i].plates[0].plate_points[1].y) << "," <<
@@ -302,7 +302,28 @@ namespace alpr
         warpedPlateRegions.push_back(pr);
       }
     }
-
+    if (false && !priorResults.empty()){ //1/26/2015 adt, calculate next potential license plate location.  Accuracy is bad so disabling.
+      ResultAggregator aggregator;
+      AlprFullDetails tempFull, aggregate;
+      std::string lastPlate, thisPlate;
+      for (int i = priorResults.size(); i--; ){
+        thisPlate = priorResults[i].plates[0].bestPlate.characters;
+        cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
+            "x["<< min (priorResults[i].plates[0].plate_points[0].x, priorResults[i].plates[0].plate_points[3].x) << "," <<
+            max (priorResults[i].plates[0].plate_points[1].x, priorResults[i].plates[0].plate_points[2].x) << "]" << 
+            "y["<< min (priorResults[i].plates[0].plate_points[0].y, priorResults[i].plates[0].plate_points[1].y) << "," <<
+            max (priorResults[i].plates[0].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
+        "\t"<< thisPlate << "\t\t" << priorResults[i].plates[0].bestPlate.overall_confidence << endl;
+        if ((frame_number == priorResults[i].frame_number + 2) || (frame_number == priorResults[i].frame_number + 1)){
+          //only add last to priorResults preceding this frame.
+          tempFull.results = priorResults[i];
+          aggregator.addResults(tempFull);
+        }
+      }
+      std::vector<PlateRegion> nextPrs = aggregator.calcNextPlateRegions();    
+      warpedPlateRegions.reserve(warpedPlateRegions.size() + nextPrs.size());
+      warpedPlateRegions.insert(warpedPlateRegions.end(), nextPrs.begin(), nextPrs.end());
+    }
     queue<PlateRegion> plateQueue;
     for (unsigned int i = 0; i < warpedPlateRegions.size(); i++)
       plateQueue.push(warpedPlateRegions[i]);

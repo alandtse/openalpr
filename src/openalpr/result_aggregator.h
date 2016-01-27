@@ -47,17 +47,22 @@ namespace alpr
     void addResults(AlprFullDetails full_results);
 
     AlprFullDetails getAggregateResults();
+    
+    //1/26/2016 adt, making cluster operations public
+    std::vector<std::vector<AlprPlateResult> > findClusters();
+    int overlaps(AlprPlateResult plate, std::vector<std::vector<AlprPlateResult> > clusters);
+    //1/24/2016 adt, adding new overlaps that takes Levenshtein_distance to add to a cluster.  
+    //This is primarily to allow reuse of overlaps.
+    int overlaps(AlprPlateResult plate, std::vector<std::vector<AlprPlateResult> > clusters, int maxLDistance);
+    //1/25/2016 adt, calculate the next potential plate regions for each cluster.
+    std::vector<PlateRegion> calcNextPlateRegions();
 
   private:
     std::vector<AlprFullDetails> all_results;
 
     PlateShapeInfo getShapeInfo(AlprPlateResult plate);
 
-    std::vector<std::vector<AlprPlateResult> > findClusters();
-    int overlaps(AlprPlateResult plate, std::vector<std::vector<AlprPlateResult> > clusters);
-    //1/24/2016 adt, adding new overlaps that takes Levenshtein_distance to add to a cluster.  
-    //This is primarily to allow reuse of overlaps.
-    int overlaps(AlprPlateResult plate, std::vector<std::vector<AlprPlateResult> > clusters, int maxLDistance);
+    
   };
 
 }

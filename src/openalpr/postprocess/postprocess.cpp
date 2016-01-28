@@ -126,7 +126,7 @@ namespace alpr
       newLetter.totalscore = score;
       letters[charposition].push_back(newLetter);
       // if (this->config->debugPostProcess)
-      //   cout << "\nInserting: " << letter << " charposition: " << charposition << " index: " << letters.size() - 1 << " occurence: 1" << " score: "  << score << endl;
+      //   cout << "\nInserting: " << letter << " charposition: " << charposition << " index: " << letters[charposition].size() - 1 << " occurence: 1" << " score: "  << score << endl;
     }
     else
     {

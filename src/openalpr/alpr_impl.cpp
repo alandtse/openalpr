@@ -250,21 +250,22 @@ namespace alpr
       AlprFullDetails tempFull, aggregate;
       std::string lastPlate, thisPlate;
       for (int i = 0; i<priorResults.size(); i++){
-        //note this is cheating in that it assumes all AlprResults only are returning 1 plate, TODO: fix this.
-        lastPlate = (i == 0)? "":priorResults[i-1].plates[0].bestPlate.characters;
-        thisPlate = priorResults[i].plates[0].bestPlate.characters;
-        cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
-            "x["<< min (priorResults[i].plates[0].plate_points[0].x, priorResults[i].plates[0].plate_points[3].x) << "," <<
-            max (priorResults[i].plates[0].plate_points[1].x, priorResults[i].plates[0].plate_points[2].x) << "]" << 
-            "y["<< min (priorResults[i].plates[0].plate_points[0].y, priorResults[i].plates[0].plate_points[1].y) << "," <<
-            max (priorResults[i].plates[0].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
-            // priorResults[i].plates[0].plate_points[0].x << "," <<priorResults[i].plates[0].plate_points[0].y << ";" << 
-            // priorResults[i].plates[0].plate_points[1].x << "," <<priorResults[i].plates[0].plate_points[1].y << ";" << 
-            // priorResults[i].plates[0].plate_points[2].x << "," <<priorResults[i].plates[0].plate_points[2].y << ";" << 
-            // priorResults[i].plates[0].plate_points[3].x << "," <<priorResults[i].plates[0].plate_points[3].y << ";" << 
-        "\t"<< thisPlate << "\t\t" << priorResults[i].plates[0].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<< endl;
-        tempFull.results = priorResults[i];
-        aggregator.addResults(tempFull);    
+        for (int k = 0; k < priorResults[i].plates.size(); k++ ){
+          lastPlate = (i == 0)? "":priorResults[i-1].plates[k].bestPlate.characters;
+          thisPlate = priorResults[i].plates[k].bestPlate.characters;
+          cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
+              "x["<< min (priorResults[i].plates[k].plate_points[0].x, priorResults[i].plates[k].plate_points[3].x) << "," <<
+              max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
+              "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
+              max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[k].plate_points[3].y) << "]" << 
+              // priorResults[i].plates[0].plate_points[0].x << "," <<priorResults[i].plates[0].plate_points[0].y << ";" << 
+              // priorResults[i].plates[0].plate_points[1].x << "," <<priorResults[i].plates[0].plate_points[1].y << ";" << 
+              // priorResults[i].plates[0].plate_points[2].x << "," <<priorResults[i].plates[0].plate_points[2].y << ";" << 
+              // priorResults[i].plates[0].plate_points[3].x << "," <<priorResults[i].plates[0].plate_points[3].y << ";" << 
+          "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<< endl;
+          tempFull.results = priorResults[i];
+          aggregator.addResults(tempFull);   
+        } 
       }
       aggregate = aggregator.getAggregateResults();
       AlprResults aggregateResults = aggregate.results;
@@ -302,7 +303,7 @@ namespace alpr
         warpedPlateRegions.push_back(pr);
       }
     }
-    if (false && !priorResults.empty()){ //1/26/2015 adt, calculate next potential license plate location.  Accuracy is bad so disabling.
+    if (false && usePriorResults){ //1/26/2015 adt, calculate next potential license plate location.  Accuracy is bad so disabling.
       ResultAggregator aggregator;
       AlprFullDetails tempFull, aggregate;
       std::string lastPlate, thisPlate;

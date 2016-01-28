@@ -244,7 +244,7 @@ namespace alpr
     bool usePriorResults = (!priorResults.empty() && (priorResults.back().img_width == colorImg.cols && priorResults.back().img_height == colorImg.rows));
     cout << "usePriorResults: " << usePriorResults << " size: " << priorResults.size() << endl;
     //1/24/2016 adt, print out all results to determine best results for cluster.
-    if (!priorResults.empty()){
+    if (usePriorResults){
       // cout << "imageWidth: " << colorImg.cols << " imageHeight: " << colorImg.rows << endl;
       ResultAggregator aggregator;
       AlprFullDetails tempFull, aggregate;

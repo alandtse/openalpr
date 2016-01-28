@@ -397,6 +397,41 @@ namespace alpr
         }
 
         country_recognizers.ocr->performOCR(&pipeline_data);
+        
+        if (false && usePriorResults){ //1/26/2015 adt, add character information from same cluster.
+          ResultAggregator aggregator;
+          AlprFullDetails tempFull, aggregate;
+          std::string thisPlate;
+          for (int i = priorResults.size(); i--; ){
+            for (int k = 0; k < priorResults[i].plates.size(); k++ ){
+              thisPlate = priorResults[i].plates[k].bestPlate.characters;
+              cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
+                  "x["<< min (priorResults[i].plates[k].plate_points[0].x, priorResults[i].plates[k].plate_points[3].x) << "," <<
+                  max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
+                  "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
+                  max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
+              "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << endl;
+              tempFull.results = priorResults[i];
+              aggregator.addResults(tempFull);
+            
+            }
+          }
+          std::vector<std::vector<AlprPlateResult> > clusters = aggregator.findClusters();
+          int cluster_index = aggregator.overlaps(plateResult, clusters); // match to all regions with overlap
+          cout << "cluster_index: " << cluster_index << endl;
+          if (cluster_index >= 0){ //found a potential cluster
+            for (int i = 0; i < clusters[cluster_index].size(); i++){ //go through every plate in cluster
+              AlprPlateResult pr = clusters[cluster_index][i]; //go through every characters
+              //if (pr.bestPlate.character_details.size() == plateResult) TODO: add only same size plates?
+              for (int k = 0; k < pr.bestPlate.character_details.size(); k++){
+                float confidence =pr.bestPlate.character_details[k].confidence; // confidence level is low.
+                std::string choice = pr.bestPlate.character_details[k].character;
+                country_recognizers.ocr->postProcessor.addLetter(string(choice), 0, k+1, confidence); // charposition appears to already start at 1.
+                cout << "plate[" << i << "] adding " << choice << " confidence: " << confidence << " at " << k << endl;
+              }
+            }  
+          }
+        }
         country_recognizers.ocr->postProcessor.analyze(plateResult.region, topN);
 
         timespec resultsStartTime;

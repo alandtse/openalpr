@@ -148,7 +148,6 @@ namespace alpr
       sub_results.results.epoch_time = start_time;
       sub_results.results.img_width = img.cols;
       sub_results.results.img_height = img.rows;
-      sub_results.results.frame_number = frame_number;  //1/24/2016, adt update AlprResult frame_number
 
       aggregator.addResults(sub_results);
     }
@@ -236,6 +235,7 @@ namespace alpr
   AlprFullDetails AlprImpl::analyzeSingleCountry(cv::Mat colorImg, cv::Mat grayImg, std::vector<cv::Rect> warpedRegionsOfInterest)
   {
     AlprFullDetails response;
+    response.results.frame_number = frame_number;  //1/24/2016, adt update AlprResult frame_number
 
     AlprRecognizers country_recognizers = recognizers[config->country];
     timespec startTime;

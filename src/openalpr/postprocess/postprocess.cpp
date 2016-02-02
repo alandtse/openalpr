@@ -362,12 +362,12 @@ namespace alpr
       }
       last_line = letter.line_index;
       
-      if (letter.letter != SKIP_CHAR)
-      {
+      // if (letter.letter != SKIP_CHAR)
+      // {
         possibility.letters = possibility.letters + letter.letter;
         possibility.letter_details.push_back(letter);
         plate_char_length += 1;
-      }
+      // }
       possibility.totalscore = possibility.totalscore + letter.totalscore;
     }
 

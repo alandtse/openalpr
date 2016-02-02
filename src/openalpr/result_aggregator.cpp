@@ -47,7 +47,9 @@ namespace alpr
     if (all_results.size() == 1)
       return all_results[0];
 
-
+    timespec startTime; //1/29/2016 adt, adding timing benchmark to aggregateResults
+    getTimeMonotonic(&startTime);
+    
     AlprFullDetails response;
 
     // Plate regions are needed for benchmarking
@@ -59,13 +61,13 @@ namespace alpr
     }
 
 
-    response.results.epoch_time = all_results[0].results.epoch_time;
+    response.results.epoch_time = all_results.back().results.epoch_time; //1/28/2016 adt, setting last added result
     response.results.frame_number = all_results.back().results.frame_number; //1/24/2016 adt, adding frame_number; select last added result
     //cout << "Set frame_number: " << response.results.frame_number << endl;
     response.results.img_height = all_results[0].results.img_height;
     response.results.img_width = all_results[0].results.img_width;
-    response.results.total_processing_time_ms = all_results[0].results.total_processing_time_ms;
-    response.results.regionsOfInterest = all_results[0].results.regionsOfInterest;
+    response.results.total_processing_time_ms = all_results.back().results.total_processing_time_ms; 
+    response.results.regionsOfInterest = all_results.back().results.regionsOfInterest;
 
 
     vector<vector<AlprPlateResult> > clusters = findClusters();
@@ -85,10 +87,15 @@ namespace alpr
           best_index = k;
         }
       }
-      cout << "Cluster[" << i << "] BestPlate:" << clusters[i][best_index].bestPlate.characters << " confidence: " << clusters[i][best_index].bestPlate.overall_confidence << endl;
+      //cout << "Cluster[" << i << "] BestPlate:" << clusters[i][best_index].bestPlate.characters << " confidence: " << clusters[i][best_index].bestPlate.overall_confidence << endl;
       response.results.plates.push_back(clusters[i][best_index]);
     }
 
+    //1/29/2016 adt, setting processing time for aggregator
+    timespec endTime;
+    getTimeMonotonic(&endTime);
+    response.results.total_processing_time_ms += diffclock(startTime, endTime);
+    
     return response;
   }
 

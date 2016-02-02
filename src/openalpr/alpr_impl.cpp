@@ -242,50 +242,8 @@ namespace alpr
     getTimeMonotonic(&startTime);
     //1/23/2016 adt, adding historical data check.  If priorResults is not empty and image size is the same
     bool usePriorResults = (!priorResults.empty() && (priorResults.back().img_width == colorImg.cols && priorResults.back().img_height == colorImg.rows));
-    cout << "usePriorResults: " << usePriorResults << " size: " << priorResults.size() << endl;
-    //1/24/2016 adt, print out all results to determine best results for cluster.
-    if (usePriorResults){
-      // cout << "imageWidth: " << colorImg.cols << " imageHeight: " << colorImg.rows << endl;
-      ResultAggregator aggregator;
-      AlprFullDetails tempFull, aggregate;
-      std::string lastPlate, thisPlate;
-      for (int i = 0; i<priorResults.size(); i++){
-        for (int k = 0; k < priorResults[i].plates.size(); k++ ){
-          lastPlate = (i == 0)? "":priorResults[i-1].plates[k].bestPlate.characters;
-          thisPlate = priorResults[i].plates[k].bestPlate.characters;
-          cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
-              "x["<< min (priorResults[i].plates[k].plate_points[0].x, priorResults[i].plates[k].plate_points[3].x) << "," <<
-              max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
-              "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
-              max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[k].plate_points[3].y) << "]" << 
-              // priorResults[i].plates[0].plate_points[0].x << "," <<priorResults[i].plates[0].plate_points[0].y << ";" << 
-              // priorResults[i].plates[0].plate_points[1].x << "," <<priorResults[i].plates[0].plate_points[1].y << ";" << 
-              // priorResults[i].plates[0].plate_points[2].x << "," <<priorResults[i].plates[0].plate_points[2].y << ";" << 
-              // priorResults[i].plates[0].plate_points[3].x << "," <<priorResults[i].plates[0].plate_points[3].y << ";" << 
-          "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<< endl;
-          tempFull.results = priorResults[i];
-          aggregator.addResults(tempFull);   
-        } 
-      }
-      aggregate = aggregator.getAggregateResults();
-      AlprResults aggregateResults = aggregate.results;
-      for (int i = 0; i<aggregateResults.plates.size(); i++){
-        lastPlate = (i == 0)? "":aggregateResults.plates[i-1].bestPlate.characters;
-        thisPlate = aggregateResults.plates[i].bestPlate.characters;
-        cout << "aggregate[" <<i <<"]:\t" << 
-          "x["<< min (aggregateResults.plates[i].plate_points[0].x, aggregateResults.plates[i].plate_points[3].x) << "," <<
-          max (aggregateResults.plates[i].plate_points[1].x, aggregateResults.plates[i].plate_points[2].x) << "]" << 
-          "y["<< min (aggregateResults.plates[i].plate_points[0].y, aggregateResults.plates[i].plate_points[1].y) << "," <<
-          max (aggregateResults.plates[i].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
-          // aggregateResults.plates[i].plate_points[0].x << "," <<aggregateResults.plates[i].plate_points[0].y << ";" << 
-          // aggregateResults.plates[i].plate_points[1].x << "," <<aggregateResults.plates[i].plate_points[1].y << ";" << 
-          // aggregateResults.plates[i].plate_points[2].x << "," <<aggregateResults.plates[i].plate_points[2].y << ";" << 
-          // aggregateResults.plates[i].plate_points[3].x << "," <<aggregateResults.plates[i].plate_points[3].y << ";" << 
-      "\t"<< aggregateResults.plates[i].bestPlate.characters << "\t\t" << aggregateResults.plates[i].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<<endl;
-      // cout << "priorResultsWidth: " << priorResults.back().img_width << " priorResultsHeight: " << priorResults.back().img_height << endl;
-      cout << toJson(aggregateResults) << endl;
-      }
-    }
+    if (config->debugGeneral) cout << "usePriorResults: " << usePriorResults << " size: " << priorResults.size() << endl;
+    
     vector<PlateRegion> warpedPlateRegions;
     // Find all the candidate regions
     if (config->skipDetection == false)
@@ -511,7 +469,62 @@ namespace alpr
       }
 
     }
+    //1/24/2016 adt, compare plateResult with priorResults. plateResult has already been added so it will be compared against the result_aggregator
+    if (response.results.plates.size() > 0 && usePriorResults){
+      ResultAggregator aggregator;
+      AlprFullDetails tempFull, aggregate;
+      std::string lastPlate, thisPlate;
+      //fill the aggregator with prior results
+      for (int i = 0; i<priorResults.size(); i++){
+        for (int k = 0; k < priorResults[i].plates.size(); k++ ){
+          if (config->debugGeneral) {
+            lastPlate = (i == 0)? "":priorResults[i-1].plates[k].bestPlate.characters;
+            thisPlate = priorResults[i].plates[k].bestPlate.characters;
+            cout << "priorResults[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
+                "x["<< min (priorResults[i].plates[k].plate_points[0].x, priorResults[i].plates[k].plate_points[3].x) << "," <<
+                max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
+                "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
+                max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[k].plate_points[3].y) << "]" << 
+            "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<< endl;
+          }
+          tempFull.results = priorResults[i];
+          aggregator.addResults(tempFull);   
+        } 
+      }
+      std::vector<std::vector<AlprPlateResult> > clusters = aggregator.findClusters();
+      for (int i = 0; i < response.results.plates.size(); i++) {
+        AlprPlateResult plateResult = response.results.plates[i];
+        int cluster_index = aggregator.overlaps(plateResult, clusters, 2); // match to all regions with overlap
+        if (cluster_index >= 0){ // compare to aggregate results
+          aggregate = aggregator.getAggregateResults();
+          AlprResults aggregateResults = aggregate.results;
+          AlprPlateResult aggregatePlate = aggregateResults.plates[cluster_index];
+          if (aggregatePlate.bestPlate.overall_confidence > plateResult.bestPlate.overall_confidence){
+            cout << "Aggregate found better at frame: " << aggregateResults.frame_number << " aggregatePlate: " << aggregatePlate.bestPlate.characters << "\t" << aggregatePlate.bestPlate.overall_confidence 
+              << "\t frame: " << response.results.frame_number << " plateResult: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence << endl;
+          }else {
+          cout << "Aggregate result not better at frame: " << aggregateResults.frame_number << " aggregatePlate: " << aggregatePlate.bestPlate.characters << "\t" << aggregatePlate.bestPlate.overall_confidence 
+            << "\t frame: " << response.results.frame_number << " plateResult: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence << endl;
+          }
+          if (config->debugGeneral){
+              for (int i = 0; i<aggregateResults.plates.size(); i++){
+                lastPlate = (i == 0)? "":aggregateResults.plates[i-1].bestPlate.characters;
+                thisPlate = aggregateResults.plates[i].bestPlate.characters;
+                cout << "aggregate[" <<i <<"]:\t" << 
+                  "x["<< min (aggregateResults.plates[i].plate_points[0].x, aggregateResults.plates[i].plate_points[3].x) << "," <<
+                  max (aggregateResults.plates[i].plate_points[1].x, aggregateResults.plates[i].plate_points[2].x) << "]" << 
+                  "y["<< min (aggregateResults.plates[i].plate_points[0].y, aggregateResults.plates[i].plate_points[1].y) << "," <<
+                  max (aggregateResults.plates[i].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
+              "\t"<< aggregateResults.plates[i].bestPlate.characters << "\t\t" << aggregateResults.plates[i].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<<endl;
+              }
+            if (config->debugGeneral) cout << toJson(aggregateResults) << endl;
+          }
+        }
 
+
+      }
+      
+    }
     // Unwarp plate regions if necessary
     prewarp->projectPlateRegions(warpedPlateRegions, grayImg.cols, grayImg.rows, true);
     response.plateRegions = warpedPlateRegions;

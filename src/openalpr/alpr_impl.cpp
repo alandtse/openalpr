@@ -356,40 +356,6 @@ namespace alpr
 
         country_recognizers.ocr->performOCR(&pipeline_data);
         
-        if (false && usePriorResults){ //1/26/2015 adt, add character information from same cluster.
-          ResultAggregator aggregator;
-          AlprFullDetails tempFull, aggregate;
-          std::string thisPlate;
-          for (int i = priorResults.size(); i--; ){
-            for (int k = 0; k < priorResults[i].plates.size(); k++ ){
-              thisPlate = priorResults[i].plates[k].bestPlate.characters;
-              cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
-                  "x["<< min (priorResults[i].plates[k].plate_points[0].x, priorResults[i].plates[k].plate_points[3].x) << "," <<
-                  max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
-                  "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
-                  max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
-              "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << endl;
-              tempFull.results = priorResults[i];
-              aggregator.addResults(tempFull);
-            
-            }
-          }
-          std::vector<std::vector<AlprPlateResult> > clusters = aggregator.findClusters();
-          int cluster_index = aggregator.overlaps(plateResult, clusters); // match to all regions with overlap
-          cout << "cluster_index: " << cluster_index << endl;
-          if (cluster_index >= 0){ //found a potential cluster
-            for (int i = 0; i < clusters[cluster_index].size(); i++){ //go through every plate in cluster
-              AlprPlateResult pr = clusters[cluster_index][i]; //go through every characters
-              //if (pr.bestPlate.character_details.size() == plateResult) TODO: add only same size plates?
-              for (int k = 0; k < pr.bestPlate.character_details.size(); k++){
-                float confidence =pr.bestPlate.character_details[k].confidence; // confidence level is low.
-                std::string choice = pr.bestPlate.character_details[k].character;
-                country_recognizers.ocr->postProcessor.addLetter(string(choice), 0, k+1, confidence); // charposition appears to already start at 1.
-                cout << "plate[" << i << "] adding " << choice << " confidence: " << confidence << " at " << k << endl;
-              }
-            }  
-          }
-        }
         country_recognizers.ocr->postProcessor.analyze(plateResult.region, topN);
 
         timespec resultsStartTime;
@@ -450,7 +416,113 @@ namespace alpr
         {
           cout << "Result Generation Time: " << diffclock(resultsStartTime, plateEndTime) << "ms." << endl;
         }
+        
+        if (true && (plateResult.topNPlates.size() > 0) && usePriorResults){ //1/26/2015 adt, add character information from same cluster.
+          ResultAggregator aggregator;
+          AlprFullDetails tempFull, aggregate;
+          std::string thisPlate;
+          for (int i = priorResults.size(); i--; ){
+            for (int k = 0; k < priorResults[i].plates.size(); k++ ){
+              thisPlate = priorResults[i].plates[k].bestPlate.characters;
+              // cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
+              //     "x["<< min (priorResults[i].plates[k].plate_points[0].x, priorResults[i].plates[k].plate_points[3].x) << "," <<
+              //     max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
+              //     "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
+              //     max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
+              // "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << endl;
+              tempFull.results = priorResults[i];
+              aggregator.addResults(tempFull);
+            
+            }
+          }
+          std::vector<std::vector<AlprPlateResult> > clusters = aggregator.findClusters();
+          int cluster_index = aggregator.overlaps(plateResult, clusters); // match to all regions with overlap
+          if (cluster_index >= 0){ //found a potential cluster
+            for (int i = 0; i < clusters[cluster_index].size(); i++){ //go through every plate in cluster
+              AlprPlateResult pr = clusters[cluster_index][i]; 
+              for (int k = 0; k < pr.bestPlate.character_details.size(); k++){ //go through every characters
+                for (int j = 0; j < plateResult.bestPlate.character_details.size(); j++){ //review every character in initialPlateResult
+                  float confidence =pr.bestPlate.character_details[k].confidence; 
+                  std::string choice = pr.bestPlate.character_details[k].character;
+                  if (plateResult.bestPlate.character_details[j].character == choice){ //only add a character if it matched a potential choice     
+                    country_recognizers.ocr->postProcessor.addLetter(string(choice), 0, k+1, confidence); // charposition appears to already start at 1.
+                    if (config->debugGeneral) cout << "plate[" << i << "] adding " << choice << " confidence: " << confidence << " at " << k << endl;
+                  }
+                }
+              }
+            }  
+          }
+          country_recognizers.ocr->postProcessor.analyze(plateResult.region, topN);
+          AlprPlateResult newPlateResult;
+          timespec resultsStartTime;
+          getTimeMonotonic(&resultsStartTime);
 
+          const vector<PPResult> ppResults = country_recognizers.ocr->postProcessor.getResults();
+
+          int bestPlateIndex = 0;
+          bool isBestPlateSelected = false;
+          for (unsigned int pp = 0; pp < ppResults.size(); pp++)
+          {
+
+            // Set our "best plate" match to either the first entry, or the first entry with a postprocessor template match
+            if (isBestPlateSelected == false && ppResults[pp].matchesTemplate){
+              bestPlateIndex = newPlateResult.topNPlates.size();
+              isBestPlateSelected = true;
+            }
+
+            AlprPlate aplate;
+            aplate.characters = ppResults[pp].letters;
+            aplate.overall_confidence = ppResults[pp].totalscore;
+            aplate.matches_template = ppResults[pp].matchesTemplate;
+
+            // Grab detailed results for each character
+            for (unsigned int c_idx = 0; c_idx < ppResults[pp].letter_details.size(); c_idx++)
+            {
+              AlprChar character_details;
+              Letter l = ppResults[pp].letter_details[c_idx];
+
+              character_details.character = l.letter;
+              character_details.confidence = l.totalscore;
+              cv::Rect char_rect = pipeline_data.charRegionsFlat[l.charposition];
+              std::vector<AlprCoordinate> charpoints = getCharacterPoints(char_rect, charTransformMatrix );
+              for (int cpt = 0; cpt < 4; cpt++)
+                character_details.corners[cpt] = charpoints[cpt];
+              aplate.character_details.push_back(character_details);
+            }
+            newPlateResult.topNPlates.push_back(aplate);
+          }
+
+          if (newPlateResult.topNPlates.size() > bestPlateIndex)
+          {
+            AlprPlate bestPlate;
+            bestPlate.characters = newPlateResult.topNPlates[bestPlateIndex].characters;
+            bestPlate.matches_template = newPlateResult.topNPlates[bestPlateIndex].matches_template;
+            bestPlate.overall_confidence = newPlateResult.topNPlates[bestPlateIndex].overall_confidence;
+            bestPlate.character_details = newPlateResult.topNPlates[bestPlateIndex].character_details;
+
+            plateResult.bestPlate = bestPlate;
+            cout << "newBestPlate found : " << " plateResult: " << newPlateResult.bestPlate.characters << "\t" << newPlateResult.bestPlate.overall_confidence << endl;
+          
+          }
+
+      
+
+          timespec plateEndTime;
+          getTimeMonotonic(&plateEndTime);
+          plateResult.processing_time_ms = diffclock(platestarttime, plateEndTime);
+          
+          if (plateResult.bestPlate.overall_confidence >= newPlateResult.bestPlate.overall_confidence){
+            cout << "Initial found better: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence 
+              << " NewPlateResult: " << newPlateResult.bestPlate.characters << "\t" << newPlateResult.bestPlate.overall_confidence << endl;
+          }else {
+            cout << "NewPlateResult found better: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence 
+              << " NewPlateResult: " << newPlateResult.bestPlate.characters << "\t" << newPlateResult.bestPlate.overall_confidence << endl;
+          }
+          if (config->debugTiming)
+          {
+            cout << "PriorHistory Result Generation Time: " << diffclock(resultsStartTime, plateEndTime) << "ms." << endl;
+          }
+        }
         if (plateResult.topNPlates.size() > 0)
         {
           plateDetected = true;

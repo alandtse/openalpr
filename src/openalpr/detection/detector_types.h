@@ -15,38 +15,20 @@
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+*/
 
-#ifndef OPENALPR_DETECTORMORPH_H
-#define	OPENALPR_DETECTORMORPH_H
+#ifndef OPENALPR_DETECTOR_TYPES_H
+#define	OPENALPR_DETECTOR_TYPES_H
 
-#include <stdio.h>
-#include <iostream>
-#include <vector>
-
-#include "opencv2/objdetect/objdetect.hpp"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/core/core.hpp"
-#include "opencv2/ml/ml.hpp"
-
-#include "detector.h"
-
-namespace alpr {
-
-  class DetectorMorph : public Detector {
-  public:
-    DetectorMorph(Config* config, PreWarp* prewarp);
-    virtual ~DetectorMorph();
-
-    std::vector<cv::Rect> find_plates(cv::Mat frame, cv::Size min_plate_size, cv::Size max_plate_size);
-
-  private:
-    bool CheckSizes(cv::RotatedRect& mr);
-    bool ValidateCharAspect(cv::Rect& r0, float idealAspect);
-    
+namespace alpr
+{
+  
+  struct PlateRegion
+  {
+    cv::Rect rect;
+    std::vector<PlateRegion> children;
   };
-
+  
 }
-
-#endif	/* OPENALPR_DETECTORMORPH_H */
+#endif	/* OPENALPR_DETECTOR_TYPES_H */
 

@@ -83,15 +83,17 @@ namespace alpr
       AlprFullDetails recognizeFullDetails(cv::Mat img, std::vector<cv::Rect> regionsOfInterest);
 
       AlprResults recognize( std::vector<char> imageBytes );
-	    AlprResults recognize( std::vector<char> imageBytes, std::vector<AlprRegionOfInterest> regionsOfInterest );
+      AlprResults recognize( std::vector<char> imageBytes, std::vector<AlprRegionOfInterest> regionsOfInterest );
       AlprResults recognize( unsigned char* pixelData, int bytesPerPixel, int imgWidth, int imgHeight, std::vector<AlprRegionOfInterest> regionsOfInterest );
       AlprResults recognize( cv::Mat img );
       AlprResults recognize( cv::Mat img, std::vector<cv::Rect> regionsOfInterest );
 
-      void applyRegionTemplate(AlprPlateResult* result, std::string region);
-
       AlprFullDetails analyzeSingleCountry(cv::Mat colorImg, cv::Mat grayImg, std::vector<cv::Rect> regionsOfInterest);
 
+      void setCountry(std::string country);
+      void setPrewarp(std::string prewarp_config);
+      void setMask(unsigned char* pixelData, int bytesPerPixel, int imgWidth, int imgHeight);
+      
       void setDetectRegion(bool detectRegion);
       void setTopN(int topn);
       void setDefaultRegion(std::string region);
@@ -116,6 +118,8 @@ namespace alpr
       bool detectRegion;
       std::string defaultRegion;
 
+      void loadRecognizers();
+      
       cv::Mat getCharacterTransformMatrix(PipelineData* pipeline_data );
       std::vector<AlprCoordinate> getCharacterPoints(cv::Rect char_rect, cv::Mat transmtx);
       std::vector<cv::Rect> convertRects(std::vector<AlprRegionOfInterest> regionsOfInterest);

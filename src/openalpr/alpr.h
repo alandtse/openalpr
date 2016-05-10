@@ -137,6 +137,14 @@ namespace alpr
       Alpr(const std::string country, const std::string configFile = "", const std::string runtimeDir = "");
       virtual ~Alpr();
 
+      // Set the country used for plate recognition
+      void setCountry(std::string country);
+      
+      // Update the prewarp setting without reloading the library
+      void setPrewarp(std::string prewarp_config);
+      // Update the detection mask without reloading the library
+      void setMask(unsigned char* pixelData, int bytesPerPixel, int imgWidth, int imgHeight);
+      
       void setDetectRegion(bool detectRegion);
       void setTopN(int topN);
       void setDefaultRegion(std::string region);

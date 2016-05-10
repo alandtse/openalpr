@@ -15,38 +15,54 @@
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+*/
 
-#ifndef OPENALPR_DETECTORMORPH_H
-#define	OPENALPR_DETECTORMORPH_H
+#ifndef OPENALPR_DETECTORMASK_H
+#define	OPENALPR_DETECTORMASK_H
 
-#include <stdio.h>
 #include <iostream>
-#include <vector>
-
-#include "opencv2/objdetect/objdetect.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/core/core.hpp"
-#include "opencv2/ml/ml.hpp"
+#include "config.h"
+#include "prewarp.h"
 
-#include "detector.h"
+namespace alpr
+{
 
-namespace alpr {
-
-  class DetectorMorph : public Detector {
+  class DetectorMask {
   public:
-    DetectorMorph(Config* config, PreWarp* prewarp);
-    virtual ~DetectorMorph();
-
-    std::vector<cv::Rect> find_plates(cv::Mat frame, cv::Size min_plate_size, cv::Size max_plate_size);
-
-  private:
-    bool CheckSizes(cv::RotatedRect& mr);
-    bool ValidateCharAspect(cv::Rect& r0, float idealAspect);
     
+    DetectorMask(Config* config, PreWarp* prewarp);
+    virtual ~DetectorMask();
+
+    void setMask(cv::Mat mask);
+    
+    cv::Rect getRoiInsideMask(cv::Rect roi);
+    
+    cv::Size mask_size();
+    
+    bool region_is_masked(cv::Rect region);
+    
+    cv::Mat apply_mask(cv::Mat image);
+    
+    bool mask_loaded;
+    
+  private:
+
+    void resize_mask(cv::Mat image);
+    
+    PreWarp* prewarp;
+    std::string last_prewarp_hash;
+    
+    cv::Mat mask;
+    
+    cv::Mat resized_mask;
+    bool resized_mask_loaded;
+    
+    Config* config;
+    cv::Rect scan_area;
+   
   };
 
 }
-
-#endif	/* OPENALPR_DETECTORMORPH_H */
+#endif	/* DETECTORMASK_H */
 

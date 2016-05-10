@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 2.6)
 # Set the OpenALPR version in cmake, and also add it as a DEFINE for the code to access
 SET(OPENALPR_MAJOR_VERSION "2")
 SET(OPENALPR_MINOR_VERSION "2")
-SET(OPENALPR_PATCH_VERSION "3")
+SET(OPENALPR_PATCH_VERSION "4")
 SET(OPENALPR_VERSION ${OPENALPR_MAJOR_VERSION}.${OPENALPR_MINOR_VERSION}.${OPENALPR_PATCH_VERSION})
 
 add_definitions( -DOPENALPR_MAJOR_VERSION=${OPENALPR_MAJOR_VERSION})
@@ -14,6 +14,8 @@ add_definitions( -DOPENALPR_MINOR_VERSION=${OPENALPR_MINOR_VERSION})
 add_definitions( -DOPENALPR_PATCH_VERSION=${OPENALPR_PATCH_VERSION})
 
 SET(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake_modules/")
+
+add_definitions( -DINSTALL_PREFIX="${CMAKE_INSTALL_PREFIX}")
 
 # TODO: switch to http://www.cmake.org/cmake/help/v2.8.5/cmake.html#module:GNUInstallDirs ?
 IF (NOT CMAKE_INSTALL_SYSCONFDIR)
@@ -25,6 +27,10 @@ ENDIF()
 
 IF ( NOT DEFINED WITH_DAEMON )
   SET(WITH_DAEMON ON)
+ENDIF()
+
+IF ( NOT DEFINED WITH_STATEDETECTION )
+  SET(WITH_STATEDETECTION ON)
 ENDIF()
 
 if ( NOT DEFINED WITH_GPU_DETECTOR )
@@ -127,10 +133,18 @@ ELSE()
    SET(OPENALPR_LIB openalpr)
 ENDIF()
 
+IF (WITH_STATEDETECTION)
+  SET(STATE_DETECTION_LIB statedetection)
+  add_subdirectory(statedetection)
+ELSE()
+  SET(STATE_DETECTION_LIB "")
+  add_definitions( -DSKIP_STATE_DETECTION=1 )
+ENDIF()
+
 if (NOT IOS)
   TARGET_LINK_LIBRARIES(alpr
     ${OPENALPR_LIB}
-    statedetection
+    ${STATE_DETECTION_LIB}
     support
     video
     ${OpenCV_LIBS}
@@ -142,7 +156,12 @@ ENDIF()
 
 # Compile the alprd library on Unix-based OS
 IF (WITH_DAEMON)
-  ADD_EXECUTABLE( alprd  daemon.cpp daemon/beanstalk.c daemon/beanstalk.cc )
+  ADD_EXECUTABLE( alprd  
+    daemon.cpp 
+    daemon/daemonconfig.cpp 
+    daemon/beanstalk.c 
+    daemon/beanstalk.cc 
+)
 
   FIND_PACKAGE( log4cplus REQUIRED )
 
@@ -168,7 +187,6 @@ add_subdirectory(tests)
 ENDIF()
 
 add_subdirectory(openalpr)
-add_subdirectory(statedetection)
 add_subdirectory(video)
 
 if (WITH_BINDING_JAVA)
@@ -192,12 +210,20 @@ ENDIF()
 install (DIRECTORY  ${CMAKE_SOURCE_DIR}/../runtime_data DESTINATION         ${CMAKE_INSTALL_PREFIX}/share/openalpr)
 
 # set runtime_data to reflect the current CMAKE_INSTALL_PREFIX
-CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/../config/openalpr.conf.in ${CMAKE_CURRENT_BINARY_DIR}/config/openalpr.conf)
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/../config/openalpr.conf.user ${CMAKE_CURRENT_BINARY_DIR}/config/openalpr.conf)
 install (FILES      ${CMAKE_CURRENT_BINARY_DIR}/config/openalpr.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/openalpr/      COMPONENT config)
 
+CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/../config/openalpr.conf.defaults ${CMAKE_CURRENT_BINARY_DIR}/share/openalpr/config/openalpr.defaults.conf)
+install (FILES      ${CMAKE_CURRENT_BINARY_DIR}/share/openalpr/config/openalpr.defaults.conf DESTINATION ${CMAKE_INSTALL_PREFIX}/share/openalpr/config      COMPONENT config)
+
 IF (WITH_DAEMON)
+  CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/../config/alprd.conf.user ${CMAKE_CURRENT_BINARY_DIR}/config/alprd.conf)
+  install (FILES      ${CMAKE_CURRENT_BINARY_DIR}/config/alprd.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/openalpr/      COMPONENT config)
+
+  CONFIGURE_FILE(${CMAKE_SOURCE_DIR}/../config/alprd.conf.defaults ${CMAKE_CURRENT_BINARY_DIR}/share/openalpr/config/alprd.defaults.conf)
+  install (FILES      ${CMAKE_CURRENT_BINARY_DIR}/share/openalpr/config/alprd.defaults.conf DESTINATION ${CMAKE_INSTALL_PREFIX}/share/openalpr/config      COMPONENT config)
+
   install (TARGETS    alprd DESTINATION  ${CMAKE_INSTALL_PREFIX}/bin)
-  install (FILES      ${CMAKE_SOURCE_DIR}/../config/alprd.conf DESTINATION    ${CMAKE_INSTALL_SYSCONFDIR}/openalpr      COMPONENT config)
 ENDIF()
 
 

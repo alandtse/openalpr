@@ -87,6 +87,18 @@ namespace alpr
     return AlprImpl::fromJson(json);
   }
 
+  void Alpr::setCountry(std::string country) {
+    impl->setCountry(country);
+  }
+
+  void Alpr::setPrewarp(std::string prewarp_config) {
+    impl->setPrewarp(prewarp_config);
+  }
+
+  void Alpr::setMask(unsigned char* pixelData, int bytesPerPixel, int imgWidth, int imgHeight)
+  {
+    impl->setMask(pixelData, bytesPerPixel, imgWidth, imgHeight);
+  }
 
   void Alpr::setDetectRegion(bool detectRegion)
   {

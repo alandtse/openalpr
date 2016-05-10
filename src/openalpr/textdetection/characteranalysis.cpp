@@ -211,7 +211,7 @@ namespace alpr
       if (absangle > config->maxPlateAngleDegrees)
         confidenceDrainers += 91;
       else if (absangle > 1)
-        confidenceDrainers += (config->maxPlateAngleDegrees - absangle) ;
+        confidenceDrainers += absangle ;
 
       // If a multiline plate has only one line, disqualify
       if (pipeline_data->isMultiline && pipeline_data->textLines.size() < 2)
@@ -591,10 +591,11 @@ namespace alpr
         continue;
 
       totalChars++;
-
-	  tempFullContour = Mat::zeros(plateMask.size(), CV_8U);
-	  drawContours(tempFullContour, textContours.contours, i, Scalar(255,255,255), CV_FILLED, 8, textContours.hierarchy);
+      tempFullContour = Mat::zeros(plateMask.size(), CV_8U);
+      drawContours(tempFullContour, textContours.contours, i, Scalar(255,255,255), CV_FILLED, 8, textContours.hierarchy);
       bitwise_and(tempFullContour, plateMask, tempMaskedContour);
+      
+      textContours.goodIndices[i] = false;
 
       float beforeMaskWhiteness = mean(tempFullContour)[0];
       float afterMaskWhiteness = mean(tempMaskedContour)[0];

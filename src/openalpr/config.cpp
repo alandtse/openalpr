@@ -22,6 +22,7 @@
 #include "support/platform.h"
 #include "simpleini/simpleini.h"
 #include "utility.h"
+#include "config_helper.h"
 
 using namespace std;
 
@@ -29,12 +30,6 @@ namespace alpr
 {
 
 
-  int getInt(CSimpleIniA* ini, std::string section, std::string key, int defaultValue);
-  float getFloat(CSimpleIniA* ini, std::string section, std::string key, float defaultValue);
-  std::string getString(CSimpleIniA* ini, std::string section, std::string key, std::string defaultValue);
-  bool getBoolean(CSimpleIniA* ini, std::string section, std::string key, bool defaultValue);
-  std::vector<float> getAllFloats(CSimpleIniA* ini, string section, string key);
-  
   Config::Config(const std::string country, const std::string config_file, const std::string runtime_dir)
   {
 
@@ -71,7 +66,7 @@ namespace alpr
     }
 
 
-    if (fileExists(config_file_path.c_str()) == false)
+    if (fileExists(config_file_path.c_str()) == false && fileExists(CONFIG_FILE_TEMPLATE_LOCATION) == false)
     {
       std::cerr << "--(!) Config file '" << config_file_path << "' does not exist!" << endl;
       std::cerr << "--(!)             You can specify the configuration file location via the command line " << endl;
@@ -85,8 +80,8 @@ namespace alpr
       std::cerr << "--(!)             e.g., /etc/openalpr/openalpr.conf" << endl;
       return;
     }
-
-
+    
+    
     loadCommonValues(config_file_path);
 
     if (runtime_dir.compare("") != 0)
@@ -111,46 +106,73 @@ namespace alpr
       return;
     }
 
-    this->loaded_countries = this->parse_country_string(country);
-
-    if (this->loaded_countries.size() == 0)
-    {
-      std::cerr << "--(!) Country not specified." << endl;
-      return;
-    }
-    for (unsigned int i = 0; i < loaded_countries.size(); i++)
-    {
-      bool country_loaded = setCountry(this->loaded_countries[i]);
-      if (!country_loaded)
-      {
-        return;
-      }
-    }
-    setCountry(this->loaded_countries[0]);
-
+    bool countries_loaded = load_countries(country);
 
     if (this->debugGeneral)
     {
       std::cout << debug_message << endl;
     }
 
-    this->loaded = true;
+    this->loaded = countries_loaded;
   }
+  
   Config::~Config()
   {
+    
+  }
+  
+  bool Config::load_countries(const std::string countries) {
 
+    this->loaded_countries = this->parse_country_string(countries);
+
+    if (this->loaded_countries.size() == 0)
+    {
+      std::cerr << "--(!) Country not specified." << endl;
+      return false;
+    }
+    for (unsigned int i = 0; i < loaded_countries.size(); i++)
+    {
+      bool country_loaded = setCountry(this->loaded_countries[i]);
+      if (!country_loaded)
+      {
+        return false;
+      }
+    }
+    
+    setCountry(this->loaded_countries[0]);
+    
+    return true;
   }
 
+  
   void Config::loadCommonValues(string configFile)
   {
 
+    CSimpleIniA* ini = NULL;
     CSimpleIniA iniObj;
-    iniObj.LoadFile(configFile.c_str());
-    CSimpleIniA* ini = &iniObj;
+    if (fileExists(configFile.c_str()))
+    {
+      iniObj.LoadFile(configFile.c_str());
+      ini = &iniObj;
+    }
 
-    runtimeBaseDir = getString(ini, "", "runtime_dir", "/usr/share/openalpr/runtime_data");
-
-    std::string detectorString = getString(ini, "", "detector", "lbpcpu");
+    
+    CSimpleIniA* defaultIni = NULL;
+    CSimpleIniA defaultIniObj;
+    if (fileExists(CONFIG_FILE_TEMPLATE_LOCATION))
+    {
+      defaultIniObj.LoadFile(CONFIG_FILE_TEMPLATE_LOCATION);
+      defaultIni = &defaultIniObj;
+    }
+    
+    runtimeBaseDir = getString(ini,defaultIni, "", "runtime_dir", DEFAULT_RUNTIME_DATA_DIR);
+   
+    // Special hack to allow config files to work if the package hasn't been installed
+    // Cmake will do this replacement on deploy, but this is useful in development
+    if (runtimeBaseDir.find("${CMAKE_INSTALL_PREFIX}") >= 0)
+      runtimeBaseDir = replaceAll(runtimeBaseDir, "${CMAKE_INSTALL_PREFIX}", INSTALL_PREFIX);
+    
+    std::string detectorString = getString(ini, defaultIni, "", "detector", "lbpcpu");
     std::transform(detectorString.begin(), detectorString.end(), detectorString.begin(), ::tolower);
 
     if (detectorString.compare("lbpcpu") == 0)
@@ -166,46 +188,52 @@ namespace alpr
       std::cerr << "Invalid detector specified: " << detectorString << ".  Using default" << std::endl;
       detector = DETECTOR_LBP_CPU;
     }
+    
+    detection_iteration_increase = getFloat(ini, defaultIni, "", "detection_iteration_increase", 1.1);
+    detectionStrictness = getInt(ini, defaultIni, "", "detection_strictness", 3);
+    maxPlateWidthPercent = getFloat(ini, defaultIni, "", "max_plate_width_percent", 100);
+    maxPlateHeightPercent = getFloat(ini, defaultIni, "", "max_plate_height_percent", 100);
+    maxDetectionInputWidth = getInt(ini, defaultIni, "", "max_detection_input_width", 1280);
+    maxDetectionInputHeight = getInt(ini, defaultIni, "", "max_detection_input_height", 768);
 
-    detection_iteration_increase = getFloat(ini, "", "detection_iteration_increase", 1.1);
-    detectionStrictness = getInt(ini, "", "detection_strictness", 3);
-    maxPlateWidthPercent = getFloat(ini, "", "max_plate_width_percent", 100);
-    maxPlateHeightPercent = getFloat(ini, "", "max_plate_height_percent", 100);
-    maxDetectionInputWidth = getInt(ini, "", "max_detection_input_width", 1280);
-    maxDetectionInputHeight = getInt(ini, "", "max_detection_input_height", 768);
+    contrastDetectionThreshold = getFloat(ini, defaultIni, "", "contrast_detection_threshold", 0.3);
+    
+    mustMatchPattern = getBoolean(ini, defaultIni, "", "must_match_pattern", false);
+    
+    skipDetection = getBoolean(ini, defaultIni, "", "skip_detection", false);
+    
+    detection_mask_image = getString(ini, defaultIni, "", "detection_mask_image", "");
+    
+    analysis_count = getInt(ini, defaultIni, "", "analysis_count", 1);
+    
+    prewarp = getString(ini, defaultIni, "", "prewarp", "");
+            
+    maxPlateAngleDegrees = getInt(ini, defaultIni, "", "max_plate_angle_degrees", 15);
 
-    mustMatchPattern = getBoolean(ini, "", "must_match_pattern", false);
 
-    skipDetection = getBoolean(ini, "", "skip_detection", false);
+    ocrImagePercent = getFloat(ini, defaultIni, "", "ocr_img_size_percent", 100);
+    stateIdImagePercent = getFloat(ini, defaultIni, "", "state_id_img_size_percent", 100);
 
-    prewarp = getString(ini, "", "prewarp", "");
+    ocrMinFontSize = getInt(ini, defaultIni, "", "ocr_min_font_point", 100);
 
-    maxPlateAngleDegrees = getInt(ini, "", "max_plate_angle_degrees", 15);
+    postProcessMinConfidence = getFloat(ini, defaultIni, "", "postprocess_min_confidence", 100);
+    postProcessConfidenceSkipLevel = getFloat(ini, defaultIni, "", "postprocess_confidence_skip_level", 100);
 
+    debugGeneral = 	getBoolean(ini, defaultIni, "", "debug_general",		false);
+    debugTiming = 	getBoolean(ini, defaultIni, "", "debug_timing",		false);
+    debugPrewarp = 	getBoolean(ini, defaultIni, "", "debug_prewarp",		false);
+    debugDetector = 	getBoolean(ini, defaultIni, "", "debug_detector",		false);
+    debugStateId = 	getBoolean(ini, defaultIni, "", "debug_state_id",		false);
+    debugPlateLines = 	getBoolean(ini, defaultIni, "", "debug_plate_lines", 	false);
+    debugPlateCorners = 	getBoolean(ini, defaultIni, "", "debug_plate_corners", 	false);
+    debugCharSegmenter = 	getBoolean(ini, defaultIni, "", "debug_char_segment", 	false);
+    debugCharAnalysis =	getBoolean(ini, defaultIni, "", "debug_char_analysis",	false);
+    debugColorFiler = 	getBoolean(ini, defaultIni, "", "debug_color_filter", 	false);
+    debugOcr = 		getBoolean(ini, defaultIni, "", "debug_ocr", 		false);
+    debugPostProcess = 	getBoolean(ini, defaultIni, "", "debug_postprocess", 	false);
+    debugShowImages = 	getBoolean(ini, defaultIni, "", "debug_show_images",	false);
+    debugPauseOnFrame = 	getBoolean(ini, defaultIni, "", "debug_pause_on_frame",	false);
 
-    ocrImagePercent = getFloat(ini, "", "ocr_img_size_percent", 100);
-    stateIdImagePercent = getFloat(ini, "", "state_id_img_size_percent", 100);
-
-    ocrMinFontSize = getInt(ini, "", "ocr_min_font_point", 100);
-
-    postProcessMinConfidence = getFloat(ini, "", "postprocess_min_confidence", 100);
-    postProcessConfidenceSkipLevel = getFloat(ini, "", "postprocess_confidence_skip_level", 100);
-
-    debugGeneral = 	getBoolean(ini, "", "debug_general",		false);
-    debugTiming = 	getBoolean(ini, "", "debug_timing",		false);
-    debugPrewarp = 	getBoolean(ini, "", "debug_prewarp",		false);
-    debugDetector = 	getBoolean(ini, "", "debug_detector",		false);
-    debugStateId = 	getBoolean(ini, "", "debug_state_id",		false);
-    debugPlateLines = 	getBoolean(ini, "", "debug_plate_lines", 	false);
-    debugPlateCorners = 	getBoolean(ini, "", "debug_plate_corners", 	false);
-    debugCharSegmenter = 	getBoolean(ini, "", "debug_char_segment", 	false);
-    debugCharAnalysis =	getBoolean(ini, "", "debug_char_analysis",	false);
-    debugColorFiler = 	getBoolean(ini, "", "debug_color_filter", 	false);
-    debugOcr = 		getBoolean(ini, "", "debug_ocr", 		false);
-    debugPostProcess = 	getBoolean(ini, "", "debug_postprocess", 	false);
-    debugShowImages = 	getBoolean(ini, "", "debug_show_images",	false);
-    debugPauseOnFrame = 	getBoolean(ini, "", "debug_pause_on_frame",	false);
-    debugPauseOnPlates = 	getBoolean(ini, "", "debug_pause_on_plates",	false);
   }
 
 
@@ -344,9 +372,21 @@ namespace alpr
     return parsed_countries;
   }
 
+  bool Config::country_is_loaded(std::string country) {
+    for (uint32_t i = 0; i < loaded_countries.size(); i++)
+    {
+      if (loaded_countries[i] == country)
+        return true;
+    }
+    
+    return false;
+  }
+
   bool Config::setCountry(std::string country)
   {
     this->country = country;
+    
+    
 
     std::string country_config_file = this->runtimeBaseDir + "/config/" + country + ".conf";
     if (fileExists(country_config_file.c_str()) == false)
@@ -363,72 +403,12 @@ namespace alpr
       return false;
     }
 
+    if (!country_is_loaded(country))
+      this->loaded_countries.push_back(country);
+    
     return true;
   }
 
-  float getFloat(CSimpleIniA* ini, string section, string key, float defaultValue)
-  {
-    const char * pszValue = ini->GetValue(section.c_str(), key.c_str(), NULL /*default*/);
-    if (pszValue == NULL)
-    {
-      return defaultValue;
-    }
-
-    float val = atof(pszValue);
-    return val;
-  }
-
-  std::vector<float> getAllFloats(CSimpleIniA* ini, string section, string key)
-  {
-    CSimpleIniA::TNamesDepend values;
-
-    ini->GetAllValues(section.c_str(), key.c_str(), values);
-
-    // sort the values into the original load order
-    values.sort(CSimpleIniA::Entry::LoadOrder());
-
-    std::vector<float> response;
-
-  // output all of the items
-    CSimpleIniA::TNamesDepend::const_iterator i;
-    for (i = values.begin(); i != values.end(); ++i) {
-      response.push_back(atof(i->pItem));
-    }
-
-    return response;
-  }
-
-  int getInt(CSimpleIniA* ini, string section, string key, int defaultValue)
-  {
-    const char * pszValue = ini->GetValue(section.c_str(), key.c_str(), NULL /*default*/);
-    if (pszValue == NULL)
-    {
-      return defaultValue;
-    }
-
-    int val = atoi(pszValue);
-    return val;
-  }
-  bool getBoolean(CSimpleIniA* ini, string section, string key, bool defaultValue)
-  {
-    const char * pszValue = ini->GetValue(section.c_str(), key.c_str(), NULL /*default*/);
-    if (pszValue == NULL)
-    {
-      return defaultValue;
-    }
-
-    int val = atoi(pszValue);
-    return val != 0;
-  }
-  string getString(CSimpleIniA* ini, string section, string key, string defaultValue)
-  {
-    const char * pszValue = ini->GetValue(section.c_str(), key.c_str(), NULL /*default*/);
-    if (pszValue == NULL)
-    {
-      return defaultValue;
-    }
-
-    string val = string(pszValue);
-    return val;
-  }
 }
+
+

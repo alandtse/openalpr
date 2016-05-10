@@ -25,34 +25,38 @@
 
 
 #include "utility.h"
+#include "detector_types.h"
 #include "support/timing.h"
 #include "constants.h"
+#include "detectormask.h"
+#include "prewarp.h"
 
 namespace alpr
 {
 
-  struct PlateRegion
-  {
-    cv::Rect rect;
-    std::vector<PlateRegion> children;
-  };
 
 
   class Detector
   {
 
     public:
-      Detector(Config* config);
+      Detector(Config* config, PreWarp* prewarp);
       virtual ~Detector();
 
       bool isLoaded();
       std::vector<PlateRegion> detect(cv::Mat frame);
-      virtual std::vector<PlateRegion> detect(cv::Mat frame, std::vector<cv::Rect> regionsOfInterest);
+      std::vector<PlateRegion> detect(cv::Mat frame, std::vector<cv::Rect> regionsOfInterest);
 
+      virtual std::vector<cv::Rect> find_plates(cv::Mat frame, cv::Size min_plate_size, cv::Size max_plate_size)=0;
+      
+      void setMask(cv::Mat mask);
+      
     protected:
       Config* config;
-
+      
       bool loaded;
+      
+      DetectorMask detector_mask;
 
       std::string get_detector_file();
       

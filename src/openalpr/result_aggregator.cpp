@@ -208,7 +208,7 @@ namespace alpr
 
     PlateShapeInfo psi = getShapeInfo(plate);
     AlprPlateResult plateResult;
-    int distance;
+    int distance, adjDistance;
 
     for (unsigned int i = clusters.size(); i-- > 0;) //1/24/2016 adt,reverse order so latest frames first
     {
@@ -234,16 +234,19 @@ namespace alpr
         float max_area_diff = 4.0;
         // Consider it a match if center diffx/diffy are less than the average height
         // the area is not more than 4x different
-        distance = levenshteinDistance(plate.bestPlate.characters, plateResult.bestPlate.characters, maxLDistance+1);
+        // calculate levenshteinDistance
+        distance = levenshteinDistance(plate.bestPlate.characters, plateResult.bestPlate.characters, max(plate.bestPlate.characters.size(),plateResult.bestPlate.characters.size()));
+        // calculate adjusted distance which will adjust distance based on lengths of characters in case of occlusions.
+        adjDistance = distance - abs((int) plate.bestPlate.characters.length() - (int) plateResult.bestPlate.characters.length());
         if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
-          cout << plate.bestPlate.characters << " overlap added to cluster[" << i << "]\t" << plateResult.bestPlate.characters << "\t" << distance << endl;
+          cout << plate.bestPlate.characters << " overlap added to cluster[" << i << "]\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
           return i;
         }
-        //Do a comparison to the last plate in the cluster for levenshteinDistance match
-        if (distance <= maxLDistance)
+        //Do a comparison to the last plate in the cluster for levenshteinDistance match using adjDistance
+        if (adjDistance <= maxLDistance)
         {
-          //cout << "Levenshtein match: " << plate.bestPlate.characters << "\t" << plateResult.bestPlate.characters << "\t" << levenshteinDistance(plateResult.bestPlate.characters, plate.bestPlate.characters,10) << endl;
-          cout << plate.bestPlate.characters << " Levenshtein added to cluster[" << i << "]\t" << plateResult.bestPlate.characters << "\t" << distance << endl;
+          //cout << "Levenshtein match: " << plate.bestPlate.characters << "\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;//levenshteinDistance(plateResult.bestPlate.characters, plate.bestPlate.characters,10) << endl;
+          cout << plate.bestPlate.characters << " Levenshtein added to cluster[" << i << "]\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
           return i;
         }
       }
@@ -251,7 +254,7 @@ namespace alpr
 
     }
 
-    cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]\t" << endl;
+    cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]\t" << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
     return -1;
   }
   //1/25/2016 adt, calculate the next potential plate regions for each cluster based on frame in cluster.  If there is

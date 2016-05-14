@@ -557,7 +557,7 @@ namespace alpr
                 max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
                 "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
                 max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[k].plate_points[3].y) << "]" << 
-            "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<< endl;
+            "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<< "\tlength: " << thisPlate.length() << endl;
           }
           tempFull.results = priorResults[i];
           aggregator.addResults(tempFull);   

@@ -369,6 +369,8 @@ namespace alpr
         plate_char_length += 1;
       // }
       possibility.totalscore = possibility.totalscore + letter.totalscore;
+      //if (this->config->debugPostProcess)
+      //  cout << "Adding letter " << letter.letter << " with score " << letter.totalscore << " total " << possibility.totalscore << endl;
     }
 
     // ignore plates that don't fit the length requirements

@@ -79,6 +79,7 @@ namespace alpr
     {
       float best_confidence = 0;
       int best_index = 0;
+      vector<AlprPlate> newCandidates;
       for (unsigned int k = 0; k < clusters[i].size(); k++)
       {
         if (clusters[i][k].bestPlate.overall_confidence > best_confidence)
@@ -86,6 +87,22 @@ namespace alpr
           best_confidence = clusters[i][k].bestPlate.overall_confidence;
           best_index = k;
         }
+        //2016/05/15 adt, create list of candidates based off all plates in cluster instead of just bestPlate.
+        // NOTE: this may break other openalpr implementations that assume candidates will come from a single plate 
+        newCandidates.reserve(newCandidates.size() + clusters[i][k].topNPlates.size());
+        newCandidates.insert(newCandidates.end(), clusters[i][k].topNPlates.begin(), clusters[i][k].topNPlates.end());
+      }
+      //2016/05/16 adt, sort clustersCandidates
+      std::sort(newCandidates.begin(),newCandidates.end(), greater<AlprPlate>());
+      //insert into topNPlates, but only if not seen before
+      clusters[i][best_index].topNPlates.clear();
+      map<std::string,int> mymap;
+      for (unsigned int k = 0; k < newCandidates.size() ; k++)
+      {
+        if ((clusters[i][best_index].topNPlates.size() < clusters[i][best_index].topNPlates.capacity())
+          && (mymap.count(newCandidates[k].characters) == 0))
+          clusters[i][best_index].topNPlates.push_back(newCandidates[k]);
+          mymap[newCandidates[k].characters] = 1;
       }
       //cout << "Cluster[" << i << "] BestPlate:" << clusters[i][best_index].bestPlate.characters << " confidence: " << clusters[i][best_index].bestPlate.overall_confidence << endl;
       response.results.plates.push_back(clusters[i][best_index]);

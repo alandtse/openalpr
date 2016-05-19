@@ -417,7 +417,7 @@ namespace alpr
           cout << "Result Generation Time: " << diffclock(resultsStartTime, plateEndTime) << "ms." << endl;
         }
         
-        if (true && (plateResult.topNPlates.size() > 0) && usePriorResults){ //1/26/2015 adt, add character information from same cluster.
+        if (false && (plateResult.topNPlates.size() > 0) && usePriorResults){ //1/26/2015 adt, add character information from same cluster.
           ResultAggregator aggregator;
           AlprFullDetails tempFull, aggregate;
           std::string thisPlate;

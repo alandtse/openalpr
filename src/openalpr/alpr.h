@@ -54,6 +54,11 @@ namespace alpr
 
     std::vector<AlprChar> character_details;
     bool matches_template;
+    //2016/05/16 adt adding override to comparator for sorting
+    bool operator > (const AlprPlate& plate) const
+    {
+      return (overall_confidence > plate.overall_confidence);
+    }
   };
   
 

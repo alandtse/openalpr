@@ -581,14 +581,16 @@ namespace alpr
             }
           }
           AlprPlateResult aggregatePlate = aggregateResults.plates[cluster_index];
-          if (aggregatePlate.bestPlate.overall_confidence > plateResult.bestPlate.overall_confidence){
-            //NOTE: May be potential bug in that plateResult may have a higher confidence even if not a template match.
-            //This is an artifact of plateResult only checking the topN candidates for a template match.
-            cout << "Aggregate found better at frame: " << aggregateResults.frame_number << " aggregatePlate: " << aggregatePlate.bestPlate.characters << "\t" << aggregatePlate.bestPlate.overall_confidence 
-              << "\t frame: " << response.results.frame_number << " plateResult: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence << endl;
+          if (((aggregatePlate.bestPlate.overall_confidence > plateResult.bestPlate.overall_confidence) && (aggregatePlate.bestPlate.matches_template == plateResult.bestPlate.matches_template))
+            || (aggregatePlate.bestPlate.matches_template && !plateResult.bestPlate.matches_template)){
+            cout << "Aggregate found better at frame: " << aggregateResults.frame_number << " aggregatePlate: " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
+              << "\t frame: " << response.results.frame_number << " plateResult: " << plateResult.bestPlate.characters << " " << plateResult.bestPlate.overall_confidence << " match:" << plateResult.bestPlate.matches_template << endl;
+            //TODO:Figure out what aggregateResults to return.
+            // aggregateResults.plates[cluster_index].bestPlate.character_details = plateResult.bestPlate.character_details;
+            // response.results = aggregateResults;  
           }else {
-          cout << "Aggregate result not better at frame: " << aggregateResults.frame_number << " aggregatePlate: " << aggregatePlate.bestPlate.characters << "\t" << aggregatePlate.bestPlate.overall_confidence 
-            << "\t frame: " << response.results.frame_number << " plateResult: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence << endl;
+          cout << "Aggregate result not better at frame: " << aggregateResults.frame_number << " aggregatePlate: " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
+            << "\t frame: " << response.results.frame_number << " plateResult: " << plateResult.bestPlate.characters << " " << plateResult.bestPlate.overall_confidence << " match:" << plateResult.bestPlate.matches_template << endl;
           }
           if (config->debugGeneral){
               for (int i = 0; i<aggregateResults.plates.size(); i++){

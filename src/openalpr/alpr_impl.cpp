@@ -570,8 +570,20 @@ namespace alpr
         if (cluster_index >= 0){ // compare to aggregate results
           aggregate = aggregator.getAggregateResults();
           AlprResults aggregateResults = aggregate.results;
+          for (int j = 1; j < aggregateResults.plates[cluster_index].topNPlates.size(); j++){ //first topNPlate is already bestplate, find a region match
+            if (aggregateResults.plates[cluster_index].topNPlates[j].matches_template){ //set bestPlate to template match candiate
+              if (config->debugGeneral){
+                cout << "Promoting template match found with candidate index: " <<  j << " plate: " << aggregateResults.plates[cluster_index].topNPlates[j].characters << "\t" << aggregateResults.plates[cluster_index].topNPlates[j].overall_confidence 
+                  << " replacing: " << aggregateResults.plates[cluster_index].bestPlate.characters << "\t" << aggregateResults.plates[cluster_index].bestPlate.overall_confidence << endl;
+              }
+              aggregateResults.plates[cluster_index].bestPlate = aggregateResults.plates[cluster_index].topNPlates[j];
+              break;
+            }
+          }
           AlprPlateResult aggregatePlate = aggregateResults.plates[cluster_index];
           if (aggregatePlate.bestPlate.overall_confidence > plateResult.bestPlate.overall_confidence){
+            //NOTE: May be potential bug in that plateResult may have a higher confidence even if not a template match.
+            //This is an artifact of plateResult only checking the topN candidates for a template match.
             cout << "Aggregate found better at frame: " << aggregateResults.frame_number << " aggregatePlate: " << aggregatePlate.bestPlate.characters << "\t" << aggregatePlate.bestPlate.overall_confidence 
               << "\t frame: " << response.results.frame_number << " plateResult: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence << endl;
           }else {

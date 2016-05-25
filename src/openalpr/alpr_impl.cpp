@@ -380,6 +380,7 @@ namespace alpr
           aplate.characters = ppResults[pp].letters;
           aplate.overall_confidence = ppResults[pp].totalscore;
           aplate.matches_template = ppResults[pp].matchesTemplate;
+          aplate.method = "ocr"; //2016/05/23 adt, default method is ocr, no heuristics
 
           // Grab detailed results for each character
           for (unsigned int c_idx = 0; c_idx < ppResults[pp].letter_details.size(); c_idx++)
@@ -405,8 +406,9 @@ namespace alpr
           bestPlate.matches_template = plateResult.topNPlates[bestPlateIndex].matches_template;
           bestPlate.overall_confidence = plateResult.topNPlates[bestPlateIndex].overall_confidence;
           bestPlate.character_details = plateResult.topNPlates[bestPlateIndex].character_details;
-
+          bestPlate.method = (bestPlate.matches_template == 1) ? "template_match" : plateResult.topNPlates[bestPlateIndex].method; //2016/05/24 store method
           plateResult.bestPlate = bestPlate;
+          plateResult.methodPlates[bestPlate.method] = bestPlate; //2016/05/24 store method
         }
 
         timespec plateEndTime;
@@ -474,6 +476,7 @@ namespace alpr
             aplate.characters = ppResults[pp].letters;
             aplate.overall_confidence = ppResults[pp].totalscore;
             aplate.matches_template = ppResults[pp].matchesTemplate;
+            aplate.method = "ocr"; //2016/05/23 adt, default method is ocr, no heuristics
 
             // Grab detailed results for each character
             for (unsigned int c_idx = 0; c_idx < ppResults[pp].letter_details.size(); c_idx++)
@@ -769,6 +772,7 @@ namespace alpr
     cJSON_AddStringToObject(root,"plate",		result->bestPlate.characters.c_str());
     cJSON_AddNumberToObject(root,"confidence",		result->bestPlate.overall_confidence);
     cJSON_AddNumberToObject(root,"matches_template",	result->bestPlate.matches_template);
+    cJSON_AddStringToObject(root,"method",	result->bestPlate.method.c_str());
 
     cJSON_AddNumberToObject(root,"plate_index",               result->plate_index);
 
@@ -798,6 +802,7 @@ namespace alpr
       cJSON_AddStringToObject(candidate_object, "plate",  result->topNPlates[i].characters.c_str());
       cJSON_AddNumberToObject(candidate_object, "confidence",  result->topNPlates[i].overall_confidence);
       cJSON_AddNumberToObject(candidate_object, "matches_template",  result->topNPlates[i].matches_template);
+      cJSON_AddStringToObject(candidate_object, "method",  result->topNPlates[i].method.c_str());
 
       cJSON_AddItemToArray(candidates, candidate_object);
     }
@@ -868,6 +873,7 @@ namespace alpr
         plateCandidate.characters = std::string(cJSON_GetObjectItem(candidate, "plate")->valuestring);
         plateCandidate.overall_confidence = cJSON_GetObjectItem(candidate, "confidence")->valuedouble;
         plateCandidate.matches_template = (cJSON_GetObjectItem(candidate, "matches_template")->valueint) != 0;
+        plateCandidate.matches_template = (cJSON_GetObjectItem(candidate, "method")->valuestring);
 
         plate.topNPlates.push_back(plateCandidate);
 

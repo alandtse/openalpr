@@ -102,6 +102,10 @@ namespace alpr
         if ((clusters[i][best_index].topNPlates.size() < clusters[i][best_index].topNPlates.capacity())
           && (mymap.count(newCandidates[k].characters) == 0))
           clusters[i][best_index].topNPlates.push_back(newCandidates[k]);
+          //build methodPlates up again to include the best of each method
+          if ((clusters[i][best_index].methodPlates.count(newCandidates[k].method) == 0) ||
+              (clusters[i][best_index].methodPlates[newCandidates[k].method].overall_confidence < newCandidates[k].overall_confidence))
+            clusters[i][best_index].methodPlates[newCandidates[k].method] = newCandidates[k];
           mymap[newCandidates[k].characters] = 1;
       }
       //cout << "Cluster[" << i << "] BestPlate:" << clusters[i][best_index].bestPlate.characters << " confidence: " << clusters[i][best_index].bestPlate.overall_confidence << endl;

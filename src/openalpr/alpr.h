@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <vector>
+#include <map>     // 2016/05/24 adt, adding hashmap
 #include <fstream> 
 #include <stdint.h>
 
@@ -59,6 +60,10 @@ namespace alpr
     {
       return (overall_confidence > plate.overall_confidence);
     }
+    //2016/05/23 adt, adding method indicator to indicate how plate calculated
+    //null or "ocr" will indicate default openalpr behavior which is unassisted by heuristics
+    std::string method; 
+
   };
   
 
@@ -110,6 +115,14 @@ namespace alpr
       // When region detection is enabled, this returns the region.  Region detection is experimental
       int regionConfidence;
       std::string region;
+      
+      // 2016/05/23 adt, The group_id of the plate if there were multiple plates returned over multiple frames
+      int group_id;
+      
+      // 2016/05/24 adt, A hashmap of bestplate found for each method
+      std::map<std::string, AlprPlate> methodPlates;
+
+
   };
 
   class AlprResults

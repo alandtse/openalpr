@@ -255,19 +255,23 @@ namespace alpr
         float max_area_diff = 4.0;
         // Consider it a match if center diffx/diffy are less than the average height
         // the area is not more than 4x different
-        // calculate levenshteinDistance
-        distance = levenshteinDistance(plate.bestPlate.characters, plateResult.bestPlate.characters, max(plate.bestPlate.characters.size(),plateResult.bestPlate.characters.size()));
+        // calculate levenshteinDistance using both assisted and unassisted plate characters
+        std::string plateChars = plate.bestPlate.characters,
+          plateOCRChars = plate.methodPlates["ocr"].characters,
+          plateResultChars = plateResult.bestPlate.characters,
+          plateResultOCRChars = plateResult.methodPlates["ocr"].characters;
+        distance = levenshteinDistance(plateOCRChars, plateResultOCRChars, max(plateOCRChars.size(),plateResultOCRChars.size()));
         // calculate adjusted distance which will adjust distance based on lengths of characters in case of occlusions.
-        adjDistance = distance - abs((int) plate.bestPlate.characters.length() - (int) plateResult.bestPlate.characters.length());
+        adjDistance = distance - abs((int) plateOCRChars.length() - (int) plateResultOCRChars.length());
         if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
-          cout << plate.bestPlate.characters << " overlap added to cluster[" << i << "]\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
+          cout << plateChars << " overlap added to cluster[" << i << "]\t" << plateResultChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
           return i;
         }
         //Do a comparison to the last plate in the cluster for levenshteinDistance match using adjDistance
         if (adjDistance <= maxLDistance)
         {
           //cout << "Levenshtein match: " << plate.bestPlate.characters << "\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;//levenshteinDistance(plateResult.bestPlate.characters, plate.bestPlate.characters,10) << endl;
-          cout << plate.bestPlate.characters << " Levenshtein added to cluster[" << i << "]\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
+          cout << plateChars << " (" << plateOCRChars <<") Levenshtein added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
           return i;
         }
       }
@@ -275,7 +279,7 @@ namespace alpr
 
     }
 
-    cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]\t" << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
+    cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]" << endl;
     return -1;
   }
   //1/25/2016 adt, calculate the next potential plate regions for each cluster based on frame in cluster.  If there is

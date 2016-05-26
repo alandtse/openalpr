@@ -406,7 +406,7 @@ namespace alpr
           bestPlate.matches_template = plateResult.topNPlates[bestPlateIndex].matches_template;
           bestPlate.overall_confidence = plateResult.topNPlates[bestPlateIndex].overall_confidence;
           bestPlate.character_details = plateResult.topNPlates[bestPlateIndex].character_details;
-          bestPlate.method = (bestPlate.matches_template == 1) ? "template_match" : plateResult.topNPlates[bestPlateIndex].method; //2016/05/24 store method
+          bestPlate.method = "ocr"; //2016/05/24 store method
           plateResult.bestPlate = bestPlate;
           plateResult.methodPlates[bestPlate.method] = bestPlate; //2016/05/24 store method
         }
@@ -573,7 +573,7 @@ namespace alpr
         if (cluster_index >= 0){ // compare to aggregate results
           aggregate = aggregator.getAggregateResults();
           AlprResults aggregateResults = aggregate.results;
-          for (int j = 0; j < aggregateResults.plates[cluster_index].topNPlates.size(); j++){ //find any region match
+          for (int j = 0; j < aggregateResults.plates[cluster_index].topNPlates.size(); j++){ //find any region match to promote to top of candidates
             if (aggregateResults.plates[cluster_index].topNPlates[j].matches_template){ //set bestPlate to template match candidate
               if (config->debugGeneral){
                 cout << "Promoting template match found with candidate index: " <<  j << " plate: " << aggregateResults.plates[cluster_index].topNPlates[j].characters << "\t" << aggregateResults.plates[cluster_index].topNPlates[j].overall_confidence 
@@ -599,7 +599,7 @@ namespace alpr
             response.results.plates[i].bestPlate.overall_confidence = aggregatePlate.bestPlate.overall_confidence;  
             response.results.plates[i].bestPlate.method = (aggregatePlate.bestPlate.matches_template == 1) ? "clusterHistory_template_match" : aggregatePlate.bestPlate.method = "clusterHistory";  
             response.results.plates[i].topNPlates = aggregatePlate.topNPlates;  
-            response.results.plates[i].methodPlates[aggregatePlate.bestPlate.method] = response.results.plates[i].bestPlate;
+            response.results.plates[i].group_id = cluster_index;
             aggregateResults.plates[cluster_index] = aggregatePlate;
 
           }else {
@@ -786,6 +786,8 @@ namespace alpr
     cJSON_AddStringToObject(root,"method",	result->bestPlate.method.c_str());
 
     cJSON_AddNumberToObject(root,"plate_index",               result->plate_index);
+    //2016/05/25 adt, adding group_id for video clusters
+    cJSON_AddNumberToObject(root,"group_id",               result->group_id); 
 
     cJSON_AddStringToObject(root,"region",		result->region.c_str());
     cJSON_AddNumberToObject(root,"region_confidence",	result->regionConfidence);
@@ -859,6 +861,8 @@ namespace alpr
       //plate.bestPlate = cJSON_GetObjectItem(item, "plate")->valuestring;
       plate.processing_time_ms = cJSON_GetObjectItem(item, "processing_time_ms")->valuedouble;
       plate.plate_index = cJSON_GetObjectItem(item, "plate_index")->valueint;
+      //2016/05/25 adt, adding group_id for video clusters
+      plate.group_id = cJSON_GetObjectItem(item, "group_id")->valueint;
       plate.region = std::string(cJSON_GetObjectItem(item, "region")->valuestring);
       plate.regionConfidence = cJSON_GetObjectItem(item, "region_confidence")->valueint;
       plate.requested_topn = cJSON_GetObjectItem(item, "requested_topn")->valueint;

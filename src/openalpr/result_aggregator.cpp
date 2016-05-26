@@ -263,8 +263,10 @@ namespace alpr
         distance = levenshteinDistance(plateOCRChars, plateResultOCRChars, max(plateOCRChars.size(),plateResultOCRChars.size()));
         // calculate adjusted distance which will adjust distance based on lengths of characters in case of occlusions.
         adjDistance = distance - abs((int) plateOCRChars.length() - (int) plateResultOCRChars.length());
+        //cout << plateChars << " (" << plateOCRChars <<") vs \t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
+
         if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
-          cout << plateChars << " overlap added to cluster[" << i << "]\t" << plateResultChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
+          cout << plateChars << " (" << plateOCRChars <<") overlap added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
           return i;
         }
         //Do a comparison to the last plate in the cluster for levenshteinDistance match using adjDistance

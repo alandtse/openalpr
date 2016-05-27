@@ -406,9 +406,12 @@ namespace alpr
           bestPlate.matches_template = plateResult.topNPlates[bestPlateIndex].matches_template;
           bestPlate.overall_confidence = plateResult.topNPlates[bestPlateIndex].overall_confidence;
           bestPlate.character_details = plateResult.topNPlates[bestPlateIndex].character_details;
-          bestPlate.method = "ocr"; //2016/05/24 store method
+          bestPlate.method = (bestPlate.matches_template)? "pattern_match":"ocr"; //2016/05/24 adt, store method
           plateResult.bestPlate = bestPlate;
-          plateResult.methodPlates[bestPlate.method] = bestPlate; //2016/05/24 store method
+          plateResult.methodPlates[bestPlate.method] = bestPlate; //2016/05/24 adt, store method
+          if (bestPlate.matches_template){ //2016/05/24 store ocr match too
+            plateResult.methodPlates["ocr"] = bestPlate;
+          }
         }
 
         timespec plateEndTime;
@@ -589,18 +592,14 @@ namespace alpr
             cout << "clusterHistory found better at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
               << "\t vs frame: " << response.results.frame_number << " : " << plateResult.bestPlate.characters << " " << plateResult.bestPlate.overall_confidence << " match:" << plateResult.bestPlate.matches_template << endl;
             //TODO:Figure out what aggregateResults since character details won't necessarily be at the same coords
-            //aggregatePlate.bestPlate.character_details = plateResult.bestPlate.character_details;
-            // aggregatePlate.plate_points[0] = plateResult.plate_points[0];
-            // aggregatePlate.plate_points[1] = plateResult.plate_points[1];
-            // aggregatePlate.plate_points[2] = plateResult.plate_points[2];
-            // aggregatePlate.plate_points[3] = plateResult.plate_points[3];
             response.results.plates[i].bestPlate.characters = aggregatePlate.bestPlate.characters;  
             response.results.plates[i].bestPlate.matches_template = aggregatePlate.bestPlate.matches_template;  
             response.results.plates[i].bestPlate.overall_confidence = aggregatePlate.bestPlate.overall_confidence;  
-            response.results.plates[i].bestPlate.method = (aggregatePlate.bestPlate.matches_template == 1) ? "clusterHistory_template_match" : aggregatePlate.bestPlate.method = "clusterHistory";  
+            response.results.plates[i].bestPlate.method = aggregatePlate.bestPlate.method = (aggregatePlate.bestPlate.matches_template == 1) ? "cluster_pattern_match" : "cluster";  
             response.results.plates[i].topNPlates = aggregatePlate.topNPlates;  
             response.results.plates[i].group_id = cluster_index;
-            aggregateResults.plates[cluster_index] = aggregatePlate;
+            response.results.plates[i].methodPlates[response.results.plates[i].bestPlate.method] = response.results.plates[i].bestPlate;
+            aggregateResults.plates[cluster_index] = aggregatePlate; //Needed for debug output below to work.
 
           }else {
           cout << "clusterHistory result worse at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
@@ -615,7 +614,7 @@ namespace alpr
                   max (aggregateResults.plates[i].plate_points[1].x, aggregateResults.plates[i].plate_points[2].x) << "]" << 
                   "y["<< min (aggregateResults.plates[i].plate_points[0].y, aggregateResults.plates[i].plate_points[1].y) << "," <<
                   max (aggregateResults.plates[i].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
-              "\t"<< aggregateResults.plates[i].bestPlate.characters << "\t\t" << aggregateResults.plates[i].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<<endl;
+              "\t"<< aggregateResults.plates[i].bestPlate.characters << "\t\t" << aggregateResults.plates[i].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10) << "\t method:" << aggregateResults.plates[i].bestPlate.method <<endl;
               }
             if (config->debugGeneral) cout << toJson(response.results) << endl;
           }

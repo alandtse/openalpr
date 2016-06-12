@@ -36,16 +36,15 @@ namespace alpr
 
   class DetectorCPU : public Detector {
   public:
-      DetectorCPU(Config* config);
+      DetectorCPU(Config* config, PreWarp* prewarp);
       virtual ~DetectorCPU();
 
-      std::vector<PlateRegion> detect(cv::Mat frame, std::vector<cv::Rect> regionsOfInterest);
-
+      std::vector<cv::Rect> find_plates(cv::Mat frame, cv::Size min_plate_size, cv::Size max_plate_size);
+      
   private:
 
       cv::CascadeClassifier plate_cascade;
 
-      std::vector<PlateRegion> doCascade(cv::Mat frame, int offset_x, int offset_y);
   };
 
 }

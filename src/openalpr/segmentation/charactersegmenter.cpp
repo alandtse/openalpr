@@ -304,18 +304,15 @@ namespace alpr
     float bestRowScore = 0;
     vector<Rect> bestBoxes;
 
-    for (int row = 0; row < histoImg.rows; row++)
+    for (int row = 0; row < histogram.histoImg.rows; row++)
     {
       vector<Rect> validBoxes;
       
-      int pxLeniency = 0;
-      vector<Rect> allBoxes = convert1DHitsToRect(histogram.get1DHits(pxLeniency), top, bottom);
+      vector<Rect> allBoxes = convert1DHitsToRect(histogram.get1DHits(row), top, bottom);
 
       if (this->config->debugCharSegmenter)
         cout << "All Boxes size " << allBoxes.size() << endl;
 
-      if (allBoxes.size() == 0)
-        break;
 
       float rowScore = 0;
 
@@ -429,8 +426,8 @@ namespace alpr
 
   vector<Rect> CharacterSegmenter::combineCloseBoxes( vector<Rect> charBoxes)
   {
-    // Don't bother combining if there are 2 or fewer characters
-    if (charBoxes.size() <= 2)
+    // Don't bother combining if there are fewer than the min number of characters
+    if (charBoxes.size() < config->postProcessMinCharacters)
       return charBoxes;
     
     // First find the median char gap (the space from midpoint to midpoint of chars)
@@ -696,8 +693,7 @@ namespace alpr
     //const float MIN_AREA_PERCENT = 0.1;
     const float MIN_CONTOUR_HEIGHT_PERCENT = config->segmentationMinCharHeightPercent;
 
-    Mat mask = getCharBoxMask(thresholds[0], charRegions);
-
+    
     vector<int> boxScores(charRegions.size());
 
     for (unsigned int i = 0; i < charRegions.size(); i++)
@@ -963,9 +959,6 @@ namespace alpr
       bool isbetweenLines = false;
 
       bool isOn = img.at<uchar>(row, col);
-      // check two rows at a time.
-      if (!isOn && col < img.cols)
-        isOn = img.at<uchar>(row, col);
 
       if (isOn)
       {

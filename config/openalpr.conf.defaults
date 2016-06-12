@@ -49,6 +49,19 @@ must_match_pattern = 0
 ; Bypasses plate detection.  If this is set to 1, the library assumes that each region provided is a likely plate area.
 skip_detection = 0
 
+; Specifies the full path to an image file that constrains the detection area.  Only the plate regions allowed through the mask 
+; will be analyzed.  The mask image must match the resolution of your image to be analyzed.  The mask is black and white.  
+; Black areas will be ignored, white areas will be searched.  An empty value means no mask (scan the entire image)
+detection_mask_image = 
+
+; OpenALPR can scan the same image multiple times with different randomization.  Setting this to a value larger than
+; 1 may increase accuracy, but will increase processing time linearly (e.g., analysis_count = 3 is 3x slower)
+analysis_count = 1
+
+; OpenALPR detects high-contrast plate crops and uses an alternative edge detection technique.  Setting this to 0.0 
+; would classify  ALL images as high-contrast, setting it to 1.0 would classify no images as high-contrast. 
+contrast_detection_threshold = 0.3
+
 max_plate_angle_degrees = 15
 
 ocr_min_font_point = 6
@@ -64,6 +77,7 @@ postprocess_confidence_skip_level = 80
 debug_general         = 0
 debug_timing          = 0
 debug_detector        = 0
+debug_prewarp         = 0
 debug_state_id        = 0
 debug_plate_lines     = 0
 debug_plate_corners   = 0

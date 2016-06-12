@@ -40,6 +40,7 @@ const std::string MAIN_WINDOW_NAME = "ALPR main window";
 
 const bool SAVE_LAST_VIDEO_STILL = false;
 const std::string LAST_VIDEO_STILL_LOCATION = "/tmp/laststill.jpg";
+const std::string WEBCAM_PREFIX = "/dev/video";
 MotionDetector motiondetector;
 bool do_motiondetection = true;
 
@@ -169,13 +170,21 @@ int main( int argc, const char** argv )
 
       }
     }
-    else if (filename == "webcam")
+    else if (filename == "webcam" || startsWith(filename, WEBCAM_PREFIX))
     {
+      int webcamnumber = 0;
+      
+      // If they supplied "/dev/video[number]" parse the "number" here
+      if(startsWith(filename, WEBCAM_PREFIX) && filename.length() > WEBCAM_PREFIX.length())
+      {
+        webcamnumber = atoi(filename.substr(WEBCAM_PREFIX.length()).c_str());
+      }
+      
       int framenum = 0;
-      cv::VideoCapture cap(0);
+      cv::VideoCapture cap(webcamnumber);
       if (!cap.isOpened())
       {
-        std::cout << "Error opening webcam" << std::endl;
+        std::cerr << "Error opening webcam" << std::endl;
         return 1;
       }
 
@@ -242,12 +251,14 @@ int main( int argc, const char** argv )
           {
             cv::imwrite(LAST_VIDEO_STILL_LOCATION, frame);
           }
-          //Output additional video data video frame and current video time 12/15/2015 adt
-          frameTime = cap.get(CV_CAP_PROP_POS_MSEC);
-          vidFrame = cap.get(CV_CAP_PROP_POS_FRAMES);
-          alpr.setFrame(vidFrame); //2016/06/05 adt, pass in current vidFrame
-          alpr.setTime(frameTime); //2016/06/05 adt, pass in current videotime
-          std::cout << "Processing Frame: " << framenum << " VideoFrame: " << vidFrame << " VideoTime (ms) " << frameTime << std::endl;
+          if (!outputJson){
+            //Output additional video data video frame and current video time 12/15/2015 adt
+            frameTime = cap.get(CV_CAP_PROP_POS_MSEC);
+            vidFrame = cap.get(CV_CAP_PROP_POS_FRAMES);
+            alpr.setFrame(vidFrame); //2016/06/05 adt, pass in current vidFrame
+            alpr.setTime(frameTime); //2016/06/05 adt, pass in current videotime
+            std::cout << "Processing Frame: " << framenum << " VideoFrame: " << vidFrame << " VideoTime (ms) " << frameTime << std::endl;
+          }
           if (framenum == 0)
             motiondetector.ResetMotionDetection(&frame);
           plate_found = detectandshow(&alpr, frame, "", outputJson, regionCoords) || plate_found;

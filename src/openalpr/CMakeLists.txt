@@ -5,12 +5,14 @@ set(lpr_source_files
  alpr.cpp
  alpr_impl.cpp
  config.cpp
+ config_helper.cpp
  detection/detector.cpp
  detection/detectorcpu.cpp
  detection/detectorcuda.cpp
  detection/detectorocl.cpp
  detection/detectorfactory.cpp
  detection/detectormorph.cpp
+ detection/detectormask.cpp
  licenseplatecandidate.cpp
  utility.cpp
  ocr.cpp
@@ -54,7 +56,7 @@ set_target_properties(openalpr PROPERTIES SOVERSION ${OPENALPR_MAJOR_VERSION})
 
 TARGET_LINK_LIBRARIES(openalpr
   support
-  statedetection
+  ${STATE_DETECTION_LIB}
   ${OpenCV_LIBS}
   ${Tesseract_LIBRARIES}
 )

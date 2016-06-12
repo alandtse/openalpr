@@ -1,7 +1,7 @@
 openalpr
 ========
 
-OpenALPR is an open source *Automatic License Plate Recognition* library written in C++ with bindings in C#, Java, Node.js, and Python.  The library analyzes images and video streams to identify license plates.  The output is the text representation of any license plate characters.
+OpenALPR is an open source *Automatic License Plate Recognition* library written in C++ with bindings in C#, Java, Node.js, Go, and Python.  The library analyzes images and video streams to identify license plates.  The output is the text representation of any license plate characters.
 
 Check out a live online demo here: http://www.openalpr.com/demo-image.html
 
@@ -113,7 +113,7 @@ Detailed documentation is available at [doc.openalpr.com] (http://doc.openalpr.c
 Integrating the Library
 -----------------------
 
-OpenALPR is written in C++ and has bindings in C#, Python, Node.js, and Java.  Please see this guide for examples showing how to run OpenALPR in your application: http://doc.openalpr.com/bindings.html
+OpenALPR is written in C++ and has bindings in C#, Python, Node.js, Go, and Java.  Please see this guide for examples showing how to run OpenALPR in your application: http://doc.openalpr.com/bindings.html
 
 Compiling
 -----------
@@ -124,7 +124,7 @@ OpenALPR compiles and runs on Linux, Mac OSX and Windows.
 
 OpenALPR requires the following additional libraries:
 
-    - Tesseract OCR v3.0.3 (https://code.google.com/p/tesseract-ocr/)
+    - Tesseract OCR v3.0.4 (https://github.com/tesseract-ocr/tesseract)
     - OpenCV v2.4.8+ (http://opencv.org/)
 
 After cloning this GitHub repository, you should download and extract Tesseract and OpenCV source code into their own directories.  Compile both libraries.
@@ -169,3 +169,5 @@ License
 
 Affero GPLv3
 http://www.gnu.org/licenses/agpl-3.0.html
+
+Commercial-friendly licensing available.  Contact: info@openalpr.com

@@ -35,7 +35,8 @@ namespace alpr
   class VidAggregator : public ResultAggregator
   {
   public:
-    // VidAggregator();
+    VidAggregator(ResultMergeStrategy merge_strategy, int topn, Config* config) : ResultAggregator (merge_strategy, topn, config)
+    {};
     // 
     // virtual ~VidAggregator();
     // 

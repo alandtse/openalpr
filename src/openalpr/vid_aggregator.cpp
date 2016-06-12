@@ -29,13 +29,13 @@ using namespace cv;
 namespace alpr
 {
 
-  // VidAggregator::VidAggregator()
+  // VidAggregator::VidAggregator(ResultMergeStrategy merge_strategy, int topn, Config* config)
   // {
-  // 
+  //   ResultAggregator(merge_strategy, topn, config);
   // }
   // 
   // VidAggregator::~VidAggregator() {
-  // 
+  //   ResultAggregator::~ResultAggregator();
   // }
   // 
   // void VidAggregator::addResults(AlprFullDetails full_results)

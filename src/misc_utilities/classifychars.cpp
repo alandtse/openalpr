@@ -44,26 +44,34 @@ const int RIGHT_ARROW_KEY = 3;
 const int DOWN_ARROW_KEY = 1;
 const int UP_ARROW_KEY= 0;
 
+//2016/05/10 adt adding missing constants for OSX
+const int ENTER_KEY_ONE = 13;
+const int ENTER_KEY_TWO = 10;
+
 #elif WIN32
 const int LEFT_ARROW_KEY = 2424832;
 const int RIGHT_ARROW_KEY = 2555904;
 
 const int DOWN_ARROW_KEY = 2621440;
 const int UP_ARROW_KEY = 2490368;
+
+const int ENTER_KEY_ONE = 13;
+const int ENTER_KEY_TWO = 10;
 #else
-const int LEFT_ARROW_KEY = 81;
-const int RIGHT_ARROW_KEY = 83;
+const int LEFT_ARROW_KEY = 1113937;
+const int RIGHT_ARROW_KEY = 1113939;
 
-const int DOWN_ARROW_KEY = 84;
-const int UP_ARROW_KEY= 82;
+const int DOWN_ARROW_KEY = 1113940;
+const int UP_ARROW_KEY= 1113938;
 
+const int ENTER_KEY_ONE = 1048586;
+const int ENTER_KEY_TWO = 1048586;
 #endif
 
 const string SPACE = " ";
 const int SPACE_KEY = 32;
 const int ESCAPE_KEY = 27;
-const int ENTER_KEY_ONE = 13;
-const int ENTER_KEY_TWO = 10;
+
 const int DASHBOARD_COLUMNS = 3;
 
 void showDashboard(vector<Mat> images, vector<bool> selectedImages, int selectedIndex);
@@ -87,13 +95,13 @@ int main( int argc, const char** argv )
   {
     printf("Use:\n\t%s country indirectory outdirectory\n",argv[0]);
     printf("Ex: \n\t%s eu ./pics/ ./out\n",argv[0]);
-    return 0;
+    return 1;
   }
 
   if (DirectoryExists(outDir.c_str()) == false)
   {
     printf("Output dir does not exist\n");
-    return 0;
+    return 2;
   }
 
   cout << "Usage: " << endl;
@@ -360,7 +368,7 @@ vector<string> showCharSelection(Mat image, vector<Rect> charRegions, string sta
 
       if (curCharIdx >= charRegions.size())
       {
-        waitkey = ENTER_KEY_ONE;
+        waitkey = (int16_t) ENTER_KEY_ONE;
         break;
       }
     }

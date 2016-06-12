@@ -134,7 +134,8 @@ int main( int argc, const char** argv )
   else if (benchmarkName.compare("detection") == 0)
   {
     Config config(country);
-    Detector* plateDetector = createDetector(&config);
+    PreWarp prewarp(&config);
+    Detector* plateDetector = createDetector(&config, &prewarp);
 
     for (int i = 0; i< files.size(); i++)
     {
@@ -166,8 +167,8 @@ int main( int argc, const char** argv )
     alpr.config->setDebug(false);
     alpr.setDetectRegion(true);
 
-    Detector* plateDetector = createDetector(&config);
-    StateDetector stateDetector(country, config.config_file_path, config.runtimeBaseDir);
+    PreWarp prewarp(&config);
+    Detector* plateDetector = createDetector(&config, &prewarp);
     OCR ocr(&config);
 
     vector<double> endToEndTimes;

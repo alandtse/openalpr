@@ -38,6 +38,7 @@ set(lpr_source_files
  cjson.c
  motiondetector.cpp
  result_aggregator.cpp
+ vid_aggregator.cpp
 )
 
  

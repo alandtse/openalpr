@@ -17,46 +17,42 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef OPENALPR_RESULTAGGREGATOR_H
-#define OPENALPR_RESULTAGGREGATOR_H
+/*
+ * Copyright (c) 2016 Alan D. Tse.
+ * Extends result_aggregator and is performs aggregation functions on different frames from same video
+ */
+ 
+#ifndef OPENALPR_VIDAGGREGATOR_H
+#define OPENALPR_VIDAGGREGATOR_H
 
 
 #include "alpr_impl.h"
-
-
-// Runs the analysis for multiple training sets, and aggregates the results into the best matches
-
-struct PlateShapeInfo
-{
-  cv::Point2f center;
-  float area;
-  int max_width;
-  int max_height;
-};
+#include "result_aggregator.h"
 
 namespace alpr
 {
 
-  class ResultAggregator
+  class VidAggregator : public ResultAggregator
   {
   public:
-    ResultAggregator();
-
-    virtual ~ResultAggregator();
-
-    void addResults(AlprFullDetails full_results);
-
+    // VidAggregator();
+    // 
+    // virtual ~VidAggregator();
+    // 
+    // void addResults(AlprFullDetails full_results);
+    // 
     AlprFullDetails getAggregateResults();
-
-  protected:
-    std::vector<AlprFullDetails> all_results;
-
-    PlateShapeInfo getShapeInfo(AlprPlateResult plate);
-
+    // 
+    //1/26/2016 adt, making cluster operations public
     std::vector<std::vector<AlprPlateResult> > findClusters();
-    int overlaps(AlprPlateResult plate, std::vector<std::vector<AlprPlateResult> > clusters);
+    //1/24/2016 adt, adding new overlaps that takes Levenshtein_distance to add to a cluster.  
+    int overlaps(AlprPlateResult plate, std::vector<std::vector<AlprPlateResult> > clusters, int maxLDistance);
+    //1/25/2016 adt, calculate the next potential plate regions for each cluster.
+    std::vector<PlateRegion> calcNextPlateRegions();
+  private:  
+    
   };
 
 }
 
-#endif //OPENALPR_RESULTAGGREGATOR_H
+#endif //OPENALPR_VIDAGGREGATOR_H

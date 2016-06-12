@@ -146,7 +146,32 @@ namespace alpr
 
   };
 
+  //2016/06/09 adt, adding GroupResults for video grouping
+  class AlprGroupResult
+  {
+    public:
+      AlprGroupResult() {};
+      virtual ~AlprGroupResult() {};
 
+      // the best plate is the topNPlate with the highest confidence
+      AlprPlate bestPlate;
+      
+      // A list of plates that belong to the group
+      std::vector<AlprPlate> plates;
+
+      // the X/Y coordinates of the minimum and maximum corners of the plates found (clock-wise from top-left)
+      AlprCoordinate plate_points[4];
+      
+      // 2016/05/23 adt, The group_id of the plate if there were multiple plates returned over multiple frames
+      int group_id;
+      
+      int64_t firstFrame;
+      int64_t lastFrame;
+      double firstTime; //2016/06/05 adt, adding frameTime for video
+      double lastTime; //2016/06/05 adt, adding frameTime for video
+
+
+  };
   class Config;
   class AlprImpl;
   class OPENALPR_DLL_EXPORT Alpr

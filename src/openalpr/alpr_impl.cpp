@@ -19,7 +19,7 @@
 
 #include "alpr_impl.h"
 #include "result_aggregator.h"
-
+#include "vid_aggregator.h" //2016/06/11 adt, adding VidAggregator class for video analysis
 
 void plateAnalysisThread(void* arg);
 
@@ -267,28 +267,28 @@ namespace alpr
         warpedPlateRegions.push_back(pr);
       }
     }
-    if (false && usePriorResults){ //1/26/2015 adt, calculate next potential license plate location.  Accuracy is bad so disabling.
-      ResultAggregator aggregator;
-      AlprFullDetails tempFull, aggregate;
-      std::string lastPlate, thisPlate;
-      for (int i = priorResults.size(); i--; ){
-        thisPlate = priorResults[i].plates[0].bestPlate.characters;
-        cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
-            "x["<< min (priorResults[i].plates[0].plate_points[0].x, priorResults[i].plates[0].plate_points[3].x) << "," <<
-            max (priorResults[i].plates[0].plate_points[1].x, priorResults[i].plates[0].plate_points[2].x) << "]" << 
-            "y["<< min (priorResults[i].plates[0].plate_points[0].y, priorResults[i].plates[0].plate_points[1].y) << "," <<
-            max (priorResults[i].plates[0].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
-        "\t"<< thisPlate << "\t\t" << priorResults[i].plates[0].bestPlate.overall_confidence << endl;
-        if ((frame_number == priorResults[i].frame_number + 2) || (frame_number == priorResults[i].frame_number + 1)){
-          //only add last to priorResults preceding this frame.
-          tempFull.results = priorResults[i];
-          aggregator.addResults(tempFull);
-        }
-      }
-      std::vector<PlateRegion> nextPrs = aggregator.calcNextPlateRegions();    
-      warpedPlateRegions.reserve(warpedPlateRegions.size() + nextPrs.size());
-      warpedPlateRegions.insert(warpedPlateRegions.end(), nextPrs.begin(), nextPrs.end());
-    }
+    // if (false && usePriorResults){ //1/26/2015 adt, calculate next potential license plate location.  Accuracy is bad so disabling.
+    //   ResultAggregator aggregator;
+    //   AlprFullDetails tempFull, aggregate;
+    //   std::string lastPlate, thisPlate;
+    //   for (int i = priorResults.size(); i--; ){
+    //     thisPlate = priorResults[i].plates[0].bestPlate.characters;
+    //     cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
+    //         "x["<< min (priorResults[i].plates[0].plate_points[0].x, priorResults[i].plates[0].plate_points[3].x) << "," <<
+    //         max (priorResults[i].plates[0].plate_points[1].x, priorResults[i].plates[0].plate_points[2].x) << "]" << 
+    //         "y["<< min (priorResults[i].plates[0].plate_points[0].y, priorResults[i].plates[0].plate_points[1].y) << "," <<
+    //         max (priorResults[i].plates[0].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
+    //     "\t"<< thisPlate << "\t\t" << priorResults[i].plates[0].bestPlate.overall_confidence << endl;
+    //     if ((frame_number == priorResults[i].frame_number + 2) || (frame_number == priorResults[i].frame_number + 1)){
+    //       //only add last to priorResults preceding this frame.
+    //       tempFull.results = priorResults[i];
+    //       aggregator.addResults(tempFull);
+    //     }
+    //   }
+    //   std::vector<PlateRegion> nextPrs = aggregator.calcNextPlateRegions();    
+    //   warpedPlateRegions.reserve(warpedPlateRegions.size() + nextPrs.size());
+    //   warpedPlateRegions.insert(warpedPlateRegions.end(), nextPrs.begin(), nextPrs.end());
+    // }
     queue<PlateRegion> plateQueue;
     for (unsigned int i = 0; i < warpedPlateRegions.size(); i++)
       plateQueue.push(warpedPlateRegions[i]);
@@ -430,113 +430,113 @@ namespace alpr
           cout << "Result Generation Time: " << diffclock(resultsStartTime, plateEndTime) << "ms." << endl;
         }
         
-        if (false && (plateResult.topNPlates.size() > 0) && usePriorResults){ //1/26/2015 adt, add character information from same cluster.
-          ResultAggregator aggregator;
-          AlprFullDetails tempFull, aggregate;
-          std::string thisPlate;
-          for (int i = priorResults.size(); i--; ){
-            for (int k = 0; k < priorResults[i].plates.size(); k++ ){
-              thisPlate = priorResults[i].plates[k].bestPlate.characters;
-              // cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
-              //     "x["<< min (priorResults[i].plates[k].plate_points[0].x, priorResults[i].plates[k].plate_points[3].x) << "," <<
-              //     max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
-              //     "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
-              //     max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
-              // "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << endl;
-              tempFull.results = priorResults[i];
-              aggregator.addResults(tempFull);
-            
-            }
-          }
-          std::vector<std::vector<AlprPlateResult> > clusters = aggregator.findClusters();
-          int cluster_index = aggregator.overlaps(plateResult, clusters); // match to all regions with overlap
-          if (cluster_index >= 0){ //found a potential cluster
-            for (int i = 0; i < clusters[cluster_index].size(); i++){ //go through every plate in cluster
-              AlprPlateResult pr = clusters[cluster_index][i]; 
-              for (int k = 0; k < pr.bestPlate.character_details.size(); k++){ //go through every characters
-                for (int j = 0; j < plateResult.bestPlate.character_details.size(); j++){ //review every character in initialPlateResult
-                  float confidence =pr.bestPlate.character_details[k].confidence; 
-                  std::string choice = pr.bestPlate.character_details[k].character;
-                  if (plateResult.bestPlate.character_details[j].character == choice){ //only add a character if it matched a potential choice     
-                    country_recognizers.ocr->postProcessor.addLetter(string(choice), 0, k+1, confidence); // charposition appears to already start at 1.
-                    if (config->debugGeneral) cout << "plate[" << i << "] adding " << choice << " confidence: " << confidence << " at " << k << endl;
-                  }
-                }
-              }
-            }  
-          }
-          country_recognizers.ocr->postProcessor.analyze(plateResult.region, topN);
-          AlprPlateResult newPlateResult;
-          timespec resultsStartTime;
-          getTimeMonotonic(&resultsStartTime);
-
-          const vector<PPResult> ppResults = country_recognizers.ocr->postProcessor.getResults();
-
-          int bestPlateIndex = 0;
-          bool isBestPlateSelected = false;
-          for (unsigned int pp = 0; pp < ppResults.size(); pp++)
-          {
-
-            // Set our "best plate" match to either the first entry, or the first entry with a postprocessor template match
-            if (isBestPlateSelected == false && ppResults[pp].matchesTemplate){
-              bestPlateIndex = newPlateResult.topNPlates.size();
-              isBestPlateSelected = true;
-            }
-
-            AlprPlate aplate;
-            aplate.characters = ppResults[pp].letters;
-            aplate.overall_confidence = ppResults[pp].totalscore;
-            aplate.matches_template = ppResults[pp].matchesTemplate;
-            aplate.method = "ocr"; //2016/05/23 adt, default method is ocr, no heuristics
-
-            // Grab detailed results for each character
-            for (unsigned int c_idx = 0; c_idx < ppResults[pp].letter_details.size(); c_idx++)
-            {
-              AlprChar character_details;
-              Letter l = ppResults[pp].letter_details[c_idx];
-
-              character_details.character = l.letter;
-              character_details.confidence = l.totalscore;
-              cv::Rect char_rect = pipeline_data.charRegionsFlat[l.charposition];
-              std::vector<AlprCoordinate> charpoints = getCharacterPoints(char_rect, charTransformMatrix );
-              for (int cpt = 0; cpt < 4; cpt++)
-                character_details.corners[cpt] = charpoints[cpt];
-              aplate.character_details.push_back(character_details);
-            }
-            newPlateResult.topNPlates.push_back(aplate);
-          }
-
-          if (newPlateResult.topNPlates.size() > bestPlateIndex)
-          {
-            AlprPlate bestPlate;
-            bestPlate.characters = newPlateResult.topNPlates[bestPlateIndex].characters;
-            bestPlate.matches_template = newPlateResult.topNPlates[bestPlateIndex].matches_template;
-            bestPlate.overall_confidence = newPlateResult.topNPlates[bestPlateIndex].overall_confidence;
-            bestPlate.character_details = newPlateResult.topNPlates[bestPlateIndex].character_details;
-
-            plateResult.bestPlate = bestPlate;
-            cout << "newBestPlate found : " << " plateResult: " << newPlateResult.bestPlate.characters << "\t" << newPlateResult.bestPlate.overall_confidence << endl;
-          
-          }
-
-      
-
-          timespec plateEndTime;
-          getTimeMonotonic(&plateEndTime);
-          plateResult.processing_time_ms = diffclock(platestarttime, plateEndTime);
-          
-          if (plateResult.bestPlate.overall_confidence >= newPlateResult.bestPlate.overall_confidence){
-            cout << "Initial found better: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence 
-              << " NewPlateResult: " << newPlateResult.bestPlate.characters << "\t" << newPlateResult.bestPlate.overall_confidence << endl;
-          }else {
-            cout << "NewPlateResult found better: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence 
-              << " NewPlateResult: " << newPlateResult.bestPlate.characters << "\t" << newPlateResult.bestPlate.overall_confidence << endl;
-          }
-          if (config->debugTiming)
-          {
-            cout << "PriorHistory Result Generation Time: " << diffclock(resultsStartTime, plateEndTime) << "ms." << endl;
-          }
-        }
+        // if (false && (plateResult.topNPlates.size() > 0) && usePriorResults){ //1/26/2015 adt, add character information from same cluster.
+        //   VidAggregator aggregator;
+        //   AlprFullDetails tempFull, aggregate;
+        //   std::string thisPlate;
+        //   for (int i = priorResults.size(); i--; ){
+        //     for (int k = 0; k < priorResults[i].plates.size(); k++ ){
+        //       thisPlate = priorResults[i].plates[k].bestPlate.characters;
+        //       // cout << "prior[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
+        //       //     "x["<< min (priorResults[i].plates[k].plate_points[0].x, priorResults[i].plates[k].plate_points[3].x) << "," <<
+        //       //     max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
+        //       //     "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
+        //       //     max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
+        //       // "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << endl;
+        //       tempFull.results = priorResults[i];
+        //       aggregator.addResults(tempFull);
+        //     
+        //     }
+        //   }
+        //   std::vector<std::vector<AlprPlateResult> > clusters = aggregator.findClusters();
+        //   int cluster_index = aggregator.overlaps(plateResult, clusters, 2); // match to all regions with overlap
+        //   if (cluster_index >= 0){ //found a potential cluster
+        //     for (int i = 0; i < clusters[cluster_index].size(); i++){ //go through every plate in cluster
+        //       AlprPlateResult pr = clusters[cluster_index][i]; 
+        //       for (int k = 0; k < pr.bestPlate.character_details.size(); k++){ //go through every characters
+        //         for (int j = 0; j < plateResult.bestPlate.character_details.size(); j++){ //review every character in initialPlateResult
+        //           float confidence =pr.bestPlate.character_details[k].confidence; 
+        //           std::string choice = pr.bestPlate.character_details[k].character;
+        //           if (plateResult.bestPlate.character_details[j].character == choice){ //only add a character if it matched a potential choice     
+        //             country_recognizers.ocr->postProcessor.addLetter(string(choice), 0, k+1, confidence); // charposition appears to already start at 1.
+        //             if (config->debugGeneral) cout << "plate[" << i << "] adding " << choice << " confidence: " << confidence << " at " << k << endl;
+        //           }
+        //         }
+        //       }
+        //     }  
+        //   }
+        //   country_recognizers.ocr->postProcessor.analyze(plateResult.region, topN);
+        //   AlprPlateResult newPlateResult;
+        //   timespec resultsStartTime;
+        //   getTimeMonotonic(&resultsStartTime);
+        // 
+        //   const vector<PPResult> ppResults = country_recognizers.ocr->postProcessor.getResults();
+        // 
+        //   int bestPlateIndex = 0;
+        //   bool isBestPlateSelected = false;
+        //   for (unsigned int pp = 0; pp < ppResults.size(); pp++)
+        //   {
+        // 
+        //     // Set our "best plate" match to either the first entry, or the first entry with a postprocessor template match
+        //     if (isBestPlateSelected == false && ppResults[pp].matchesTemplate){
+        //       bestPlateIndex = newPlateResult.topNPlates.size();
+        //       isBestPlateSelected = true;
+        //     }
+        // 
+        //     AlprPlate aplate;
+        //     aplate.characters = ppResults[pp].letters;
+        //     aplate.overall_confidence = ppResults[pp].totalscore;
+        //     aplate.matches_template = ppResults[pp].matchesTemplate;
+        //     aplate.method = "ocr"; //2016/05/23 adt, default method is ocr, no heuristics
+        // 
+        //     // Grab detailed results for each character
+        //     for (unsigned int c_idx = 0; c_idx < ppResults[pp].letter_details.size(); c_idx++)
+        //     {
+        //       AlprChar character_details;
+        //       Letter l = ppResults[pp].letter_details[c_idx];
+        // 
+        //       character_details.character = l.letter;
+        //       character_details.confidence = l.totalscore;
+        //       cv::Rect char_rect = pipeline_data.charRegionsFlat[l.charposition];
+        //       std::vector<AlprCoordinate> charpoints = getCharacterPoints(char_rect, charTransformMatrix );
+        //       for (int cpt = 0; cpt < 4; cpt++)
+        //         character_details.corners[cpt] = charpoints[cpt];
+        //       aplate.character_details.push_back(character_details);
+        //     }
+        //     newPlateResult.topNPlates.push_back(aplate);
+        //   }
+        // 
+        //   if (newPlateResult.topNPlates.size() > bestPlateIndex)
+        //   {
+        //     AlprPlate bestPlate;
+        //     bestPlate.characters = newPlateResult.topNPlates[bestPlateIndex].characters;
+        //     bestPlate.matches_template = newPlateResult.topNPlates[bestPlateIndex].matches_template;
+        //     bestPlate.overall_confidence = newPlateResult.topNPlates[bestPlateIndex].overall_confidence;
+        //     bestPlate.character_details = newPlateResult.topNPlates[bestPlateIndex].character_details;
+        // 
+        //     plateResult.bestPlate = bestPlate;
+        //     cout << "newBestPlate found : " << " plateResult: " << newPlateResult.bestPlate.characters << "\t" << newPlateResult.bestPlate.overall_confidence << endl;
+        //   
+        //   }
+        // 
+        // 
+        // 
+        //   timespec plateEndTime;
+        //   getTimeMonotonic(&plateEndTime);
+        //   plateResult.processing_time_ms = diffclock(platestarttime, plateEndTime);
+        //   
+        //   if (plateResult.bestPlate.overall_confidence >= newPlateResult.bestPlate.overall_confidence){
+        //     cout << "Initial found better: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence 
+        //       << " NewPlateResult: " << newPlateResult.bestPlate.characters << "\t" << newPlateResult.bestPlate.overall_confidence << endl;
+        //   }else {
+        //     cout << "NewPlateResult found better: " << plateResult.bestPlate.characters << "\t" << plateResult.bestPlate.overall_confidence 
+        //       << " NewPlateResult: " << newPlateResult.bestPlate.characters << "\t" << newPlateResult.bestPlate.overall_confidence << endl;
+        //   }
+        //   if (config->debugTiming)
+        //   {
+        //     cout << "PriorHistory Result Generation Time: " << diffclock(resultsStartTime, plateEndTime) << "ms." << endl;
+        //   }
+        // }
         if (plateResult.topNPlates.size() > 0)
         {
           plateDetected = true;
@@ -559,7 +559,7 @@ namespace alpr
     }
     //1/24/2016 adt, compare plateResult with priorResults. plateResult has already been added so it will be compared against the result_aggregator
     if (response.results.plates.size() > 0 && usePriorResults){
-      ResultAggregator aggregator;
+      VidAggregator aggregator;
       AlprFullDetails tempFull, aggregate;
       std::string lastPlate, thisPlate;
       //fill the aggregator with prior results

@@ -95,11 +95,17 @@ namespace alpr
       void setDetectRegion(bool detectRegion);
       void setTopN(int topn);
       void setDefaultRegion(std::string region);
+      void setFrame(int frame);  //2016/06/05 adt, for passing in current video frame
+      void setTime(double time);  //2016/06/05 adt, for passing in video time
+
 
       static std::string toJson( const AlprResults results );
       static AlprResults fromJson(std::string json);
       static std::string getVersion();
-
+      //2016/06/03 adt, video processing output functions
+      std::string platesToCSV();
+      std::string groupsToCSV();
+      
       static cJSON* createJsonObj(const AlprPlateResult* result);
       
       Config* config;
@@ -111,6 +117,7 @@ namespace alpr
       std::map<std::string, AlprRecognizers> recognizers;
       //1/23/2016 adt, adding historical values to allow video tracking
       std::vector<AlprResults> priorResults;
+      std::vector<std::vector<AlprPlateResult> > groupResults; //TODO: Need to change this to AlprGroupResult
       int64_t frame_number;
       
       PreWarp* prewarp;
@@ -118,6 +125,9 @@ namespace alpr
       int topN;
       bool detectRegion;
       std::string defaultRegion;
+      int64_t vidFrame;  //2016/06/05 adt, storing video data
+      double vidTime; //2016/06/05 adt, storing video data
+      int plateCount; //2016/06/05 adt, total plates found by implementation
 
       cv::Mat getCharacterTransformMatrix(PipelineData* pipeline_data );
       std::vector<AlprCoordinate> getCharacterPoints(cv::Rect char_rect, cv::Mat transmtx);

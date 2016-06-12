@@ -135,6 +135,7 @@ namespace alpr
 
       int64_t epoch_time;
       int64_t frame_number;
+      double frameTime; //2016/06/05 adt, adding frameTime for video
       int img_width;
       int img_height;
       float total_processing_time_ms;
@@ -158,7 +159,9 @@ namespace alpr
       void setDetectRegion(bool detectRegion);
       void setTopN(int topN);
       void setDefaultRegion(std::string region);
-
+      void setFrame(int frame);  //2016/06/05 adt, for passing in current video frame
+      void setTime(double frameTime);  //2016/06/05 adt, for passing in video time
+      
       // Recognize from an image on disk
       AlprResults recognize(std::string filepath);
 
@@ -174,6 +177,9 @@ namespace alpr
 
       static std::string toJson(const AlprResults results);
       static AlprResults fromJson(std::string json);
+      //2016/06/03 adt, video processing output functions
+      std::string platesToCSV();
+      std::string groupsToCSV();
 
       bool isLoaded();
 

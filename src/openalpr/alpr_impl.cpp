@@ -67,6 +67,10 @@ namespace alpr
 
     prewarp = new PreWarp(config);
     frame_number = 0; //1/24/2016, adt adding frame_number for historical measuring
+    vidFrame = 0; //2016/06/05 adt, frame from video
+    vidTime = 0; //2016/06/05 adt, time from video
+    plateCount = 0; //2016/06/05 adt, set total plates found.
+    
     timespec endTime;
     getTimeMonotonic(&endTime);
     if (config->debugTiming)
@@ -235,7 +239,9 @@ namespace alpr
   AlprFullDetails AlprImpl::analyzeSingleCountry(cv::Mat colorImg, cv::Mat grayImg, std::vector<cv::Rect> warpedRegionsOfInterest)
   {
     AlprFullDetails response;
-    response.results.frame_number = frame_number;  //1/24/2016, adt update AlprResult frame_number
+    response.results.frame_number = vidFrame;  //1/24/2016, adt update AlprResult frame_number
+    response.results.frameTime = vidTime;
+    
 
     AlprRecognizers country_recognizers = recognizers[config->country];
     timespec startTime;
@@ -321,7 +327,8 @@ namespace alpr
           plateResult.region = defaultRegion;
 
         plateResult.regionConfidence = 0;
-        plateResult.plate_index = platecount++;
+        plateResult.plate_index = plateCount; // 2016/06/09, using implementation count instead of platecount++;
+        plateCount++; //2016/06/05 increment total found plate count
         plateResult.requested_topn = topN;
 
         // If using prewarp, remap the plate corners to the original image
@@ -409,9 +416,10 @@ namespace alpr
           bestPlate.method = (bestPlate.matches_template)? "pattern_match":"ocr"; //2016/05/24 adt, store method
           plateResult.bestPlate = bestPlate;
           plateResult.methodPlates[bestPlate.method] = bestPlate; //2016/05/24 adt, store method
-          if (bestPlate.matches_template){ //2016/05/24 store ocr match too
+          if (bestPlate.matches_template){ //2016/05/24 adt, store ocr match too
             plateResult.methodPlates["ocr"] = bestPlate;
           }
+          plateResult.group_id=0; //2016/06/04 adt, setting to first group
         }
 
         timespec plateEndTime;
@@ -533,6 +541,8 @@ namespace alpr
         {
           plateDetected = true;
           response.results.plates.push_back(plateResult);
+          response.results.frame_number=vidFrame; //2016/06/09 adt, store frame for later heuristics
+          response.results.frameTime=vidTime; //2016/06/09 adt, storing time for later heuristics
         }
       }
 
@@ -573,6 +583,7 @@ namespace alpr
       for (int i = 0; i < response.results.plates.size(); i++) {
         AlprPlateResult plateResult = response.results.plates[i];
         int cluster_index = aggregator.overlaps(plateResult, clusters, 2); // match to all regions with overlap
+        response.results.plates[i].group_id=(cluster_index >= 0)? cluster_index: clusters.size(); 
         if (cluster_index >= 0){ // compare to aggregate results
           aggregate = aggregator.getAggregateResults();
           AlprResults aggregateResults = aggregate.results;
@@ -600,10 +611,14 @@ namespace alpr
             response.results.plates[i].group_id = cluster_index;
             response.results.plates[i].methodPlates[response.results.plates[i].bestPlate.method] = response.results.plates[i].bestPlate;
             aggregateResults.plates[cluster_index] = aggregatePlate; //Needed for debug output below to work.
-
+    
           }else {
           cout << "clusterHistory result worse at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
             << "\t vs frame: " << response.results.frame_number << " : " << plateResult.bestPlate.characters << " " << plateResult.bestPlate.overall_confidence << " match:" << plateResult.bestPlate.matches_template << endl;
+            if (groupResults.size() > cluster_index) 
+                groupResults[cluster_index] = response.results.plates;
+              else
+                groupResults.push_back(response.results.plates);
           }
           if (config->debugGeneral){
               for (int i = 0; i<aggregateResults.plates.size(); i++){
@@ -619,8 +634,8 @@ namespace alpr
             if (config->debugGeneral) cout << toJson(response.results) << endl;
           }
         }
-
-
+    
+    
       }
       
     }
@@ -924,7 +939,17 @@ namespace alpr
     this->defaultRegion = region;
   }
 
-  std::string AlprImpl::getVersion()
+ //2016/06/05 adt, for passing in current video frame
+  void AlprImpl::setFrame(int frame)
+  {
+    this->vidFrame = frame;
+  }
+   //2016/06/05 adt, for passing in current video time
+   void AlprImpl::setTime(double vidTime)
+  {
+    this->vidTime = vidTime;
+    
+  }std::string AlprImpl::getVersion()
   {
     std::stringstream ss;
 
@@ -972,5 +997,63 @@ namespace alpr
     return cornersvector;
   }
 
+  string AlprImpl::platesToCSV()
+  {
+    string response;
+    response = "id,group_id,country,plate_number,confidence,frame_num,video_time_s,matches_pattern,tracking_hash,x1,y1,x2,y2,x3,y3,x4,y4,img_name,region,region_confidence,method\n";
+    for (int i=0; i < priorResults.size(); i++){
+      for (int j=0; j < priorResults[i].plates.size(); j++){
+        //response += to_string(i) + ",";
+        response += to_string(priorResults[i].plates[j].plate_index) + ",";
+        response += to_string(priorResults[i].plates[j].group_id) + ",";
+        response += priorResults[i].plates[j].country + ",";
+        response += priorResults[i].plates[j].bestPlate.characters + ",";
+        response += to_string(priorResults[i].plates[j].bestPlate.overall_confidence) + ",";
+        response += to_string(priorResults[i].frame_number) + ",";
+        response += to_string(priorResults[i].frameTime) + ","; //time
+        response += to_string(priorResults[i].plates[j].bestPlate.matches_template) + ",";
+        response += ","; //tracking_hash
+        response += to_string(priorResults[i].plates[j].plate_points[0].x) + ",";
+        response += to_string(priorResults[i].plates[j].plate_points[0].y) + ",";
+        response += to_string(priorResults[i].plates[j].plate_points[1].x) + ",";
+        response += to_string(priorResults[i].plates[j].plate_points[1].y) + ",";
+        response += to_string(priorResults[i].plates[j].plate_points[2].x) + ",";
+        response += to_string(priorResults[i].plates[j].plate_points[2].y) + ",";
+        response += to_string(priorResults[i].plates[j].plate_points[3].x) + ",";
+        response += to_string(priorResults[i].plates[j].plate_points[3].y) + ",";
+        response += ","; //img_name
+        response += priorResults[i].plates[j].region + ","; 
+        response += to_string(priorResults[i].plates[j].regionConfidence) + ","; 
+        response += priorResults[i].plates[j].bestPlate.method + ","; 
+        response += priorResults[i].plates[j].methodPlates["ocr"].characters + ","; 
+        response += to_string(priorResults[i].plates[j].methodPlates["ocr"].overall_confidence) + ","; 
+        response += to_string(priorResults[i].plates[j].methodPlates["ocr"].matches_template) + "\n"; 
+
+
+      }
+    }
+    return response;
+  }
+  string AlprImpl::groupsToCSV()
+  {
+    string response;
+    response = "id,country,plate_number,matches_pattern,plate_count,frame_start,frame_end,video_time_start_s,video_time_end_s,best_plate_id,confidence,region,region_confidence\n";
+    for (int i=0; i < groupResults.size(); i++)
+    {
+      for (int j=0; j < groupResults[i].size(); j++){
+        response += to_string(i) + ",";
+        response += groupResults[i][j].country + ","; 
+        response += groupResults[i][j].bestPlate.characters + ","; 
+        response += to_string(groupResults[i][j].bestPlate.matches_template) + ","; 
+        response += to_string(plateCount) + ","; 
+        response += to_string(groupResults[i][j].bestPlate.overall_confidence) + ","; 
+
+        response += groupResults[i][j].bestPlate.method + "\n"; 
+
+      }
+    }
+
+    return response;
+  }
 
 }

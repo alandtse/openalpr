@@ -228,10 +228,10 @@ int main( int argc, const char** argv )
     {
       if (fileExists(filename.c_str()))
       {
-        int framenum = 0;
+        int64_t framenum = 0;
         double frameTime = 0; //added 12/15/2015 adt to output video time and absolute frame
-        double vidFrame = 0;
-
+        int64_t vidFrame = 0;
+        bool plate_found = false;//2016/06/03 adt, variable to determine if any plates found
         cv::VideoCapture cap = cv::VideoCapture();
         cap.open(filename);
         cap.set(CV_CAP_PROP_POS_MSEC, seektoms);
@@ -245,13 +245,19 @@ int main( int argc, const char** argv )
           //Output additional video data video frame and current video time 12/15/2015 adt
           frameTime = cap.get(CV_CAP_PROP_POS_MSEC);
           vidFrame = cap.get(CV_CAP_PROP_POS_FRAMES);
+          alpr.setFrame(vidFrame); //2016/06/05 adt, pass in current vidFrame
+          alpr.setTime(frameTime); //2016/06/05 adt, pass in current videotime
           std::cout << "Processing Frame: " << framenum << " VideoFrame: " << vidFrame << " VideoTime (ms) " << frameTime << std::endl;
           if (framenum == 0)
             motiondetector.ResetMotionDetection(&frame);
-          detectandshow(&alpr, frame, "", outputJson, regionCoords);
+          plate_found = detectandshow(&alpr, frame, "", outputJson, regionCoords) || plate_found;
           //create a 1ms delay
           sleep_ms(1);
           framenum++;
+        }
+        if (plate_found){
+          std::cout << alpr.platesToCSV() << std::endl;
+          std::cout << alpr.groupsToCSV() << std::endl;
         }
       }
       else

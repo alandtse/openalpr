@@ -87,7 +87,15 @@ namespace alpr
     return AlprImpl::fromJson(json);
   }
 
-
+  //2016/06/03 adt, video processing output functions
+  std::string Alpr::platesToCSV()
+  {
+    return impl->platesToCSV();
+  }
+  std::string Alpr::groupsToCSV()
+  {
+    return impl->groupsToCSV();
+  }
   void Alpr::setDetectRegion(bool detectRegion)
   {
     impl->setDetectRegion(detectRegion);
@@ -101,6 +109,15 @@ namespace alpr
   void Alpr::setDefaultRegion(std::string region)
   {
     impl->setDefaultRegion(region);
+  }
+
+  void Alpr::setFrame(int frame)
+  {
+    impl->setFrame(frame);
+  }
+  void Alpr::setTime(double vidTime)
+  {
+    impl->setTime(vidTime);
   }
 
   bool Alpr::isLoaded()

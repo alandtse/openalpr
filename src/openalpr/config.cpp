@@ -233,7 +233,7 @@ namespace alpr
     debugPostProcess = 	getBoolean(ini, defaultIni, "", "debug_postprocess", 	false);
     debugShowImages = 	getBoolean(ini, defaultIni, "", "debug_show_images",	false);
     debugPauseOnFrame = 	getBoolean(ini, defaultIni, "", "debug_pause_on_frame",	false);
-
+    debugPauseOnPlates = 	getBoolean(ini, "", "debug_pause_on_plates",	false); //2016/06/13 adt, fixing clobbered pauseonplates
   }
 
 
@@ -335,6 +335,7 @@ namespace alpr
     debugOcr = value;
     debugPostProcess = value;
     debugPauseOnFrame = value;
+    debugPauseOnPlates = value; //2016/06/13 adt, fixing clobbered pauseonplates
     debugShowImages = value;
   }
 

@@ -210,8 +210,11 @@ namespace alpr
 
     }
     // Pause if response includes any plates; works best with debugPostProcess enabled to view results
-    if (config->debugPauseOnPlates && response.results.plates.size() > 0){
+    if (config->debugPauseOnPlates && (priorResults.size() > 1) && !priorResults.front().plates.empty() && !response.results.plates.empty()
+        && (priorResults.at(priorResults.size()-2).plates.front().group_id != response.results.plates.front().group_id)){
       config->debugPauseOnFrame = true;
+    // }else if(config->debugPauseOnPlates && response.results.plates.size() > 0){
+    //   config->debugPauseOnFrame = true;
     }
     char keypress;
     if (config->debugPauseOnFrame)
@@ -231,6 +234,9 @@ namespace alpr
         cout << "End pressed " << keypress << endl;
         config->debugPauseOnFrame = false;
         config->debugPauseOnPlates = false;
+        case 'n':
+        cout << "Next pressed " << keypress << endl;
+        config->debugPauseOnFrame = false;
         default:
         cout << "Press \"c\" to continue" << endl;
         break;
@@ -567,7 +573,7 @@ namespace alpr
     //1/24/2016 adt, compare plateResult with priorResults. plateResult has already been added so it will be compared against the result_aggregator
     if (response.results.plates.size() > 0 && usePriorResults){
       VidAggregator aggregator(MERGE_COMBINE, topN, config);
-      AlprFullDetails tempFull, aggregate;
+      AlprFullDetails aggregate;
       std::string lastPlate, thisPlate;
       //fill the aggregator with prior results
       for (int i = 0; i<priorResults.size(); i++){
@@ -582,8 +588,8 @@ namespace alpr
                 max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[k].plate_points[3].y) << "]" << 
             "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<< "\tlength: " << thisPlate.length() << endl;
           }
-          tempFull.results = priorResults[i];
-          aggregator.addResults(tempFull);   
+          aggregate.results = priorResults[i];
+          aggregator.addResults(aggregate);   
         } 
       }
       std::vector<std::vector<AlprPlateResult> > clusters = aggregator.findClusters();

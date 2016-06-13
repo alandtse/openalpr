@@ -239,12 +239,12 @@ int main( int argc, const char** argv )
       {
         int64_t framenum = 0;
         double frameTime = 0; //added 12/15/2015 adt to output video time and absolute frame
-        int64_t vidFrame = 0;
+        int64_t vidFrame = 0, totalFrames; //2016/06/13 adt, getting totalFrames
         bool plate_found = false;//2016/06/03 adt, variable to determine if any plates found
         cv::VideoCapture cap = cv::VideoCapture();
         cap.open(filename);
         cap.set(CV_CAP_PROP_POS_MSEC, seektoms);
-
+        totalFrames = cap.get(CV_CAP_PROP_FRAME_COUNT); //2016/06/13 adt, getting totalFrames
         while (cap.read(frame))
         {
           if (SAVE_LAST_VIDEO_STILL)
@@ -257,7 +257,7 @@ int main( int argc, const char** argv )
             vidFrame = cap.get(CV_CAP_PROP_POS_FRAMES);
             alpr.setFrame(vidFrame); //2016/06/05 adt, pass in current vidFrame
             alpr.setTime(frameTime); //2016/06/05 adt, pass in current videotime
-            std::cout << "Processing Frame: " << framenum << " VideoFrame: " << vidFrame << " VideoTime (ms) " << frameTime << std::endl;
+            std::cout << "Processing Frame: " << framenum << " VideoFrame: " << vidFrame << "/" << totalFrames << " (" << toString((float) vidFrame / (totalFrames) * 100) << "\%)"<< " VideoTime (ms) " << frameTime << std::endl;
           }
           if (framenum == 0)
             motiondetector.ResetMotionDetection(&frame);

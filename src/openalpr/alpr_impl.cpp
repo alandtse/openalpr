@@ -227,6 +227,10 @@ namespace alpr
         cout << "Continue pressed " << keypress << endl;
         config->debugPauseOnFrame = false;
         break;
+        case 'e':
+        cout << "End pressed " << keypress << endl;
+        config->debugPauseOnFrame = false;
+        config->debugPauseOnPlates = false;
         default:
         cout << "Press \"c\" to continue" << endl;
         break;

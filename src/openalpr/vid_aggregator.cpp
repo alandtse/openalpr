@@ -42,6 +42,10 @@ namespace alpr
   // {
   //   all_results.push_back(full_results);
   // }
+  bool compareScore2(const std::pair<float, ResultPlateScore>& firstElem, const std::pair<float, ResultPlateScore>& secondElem) {
+    return firstElem.first > secondElem.first;
+  }
+  
   AlprFullDetails VidAggregator::getAggregateResults()
   {
     assert(all_results.size() > 0);
@@ -74,6 +78,8 @@ namespace alpr
   
     vector<vector<AlprPlateResult> > clusters = findClusters();
   
+    if (merge_strategy == MERGE_PICK_BEST)
+    {
     // Assume we have multiple results, one cluster for each unique train data (e.g., eu, eu2)
   
     // Now for each cluster of plates, pick the best one
@@ -113,7 +119,125 @@ namespace alpr
       //cout << "Cluster[" << i << "] BestPlate:" << clusters[i][best_index].bestPlate.characters << " confidence: " << clusters[i][best_index].bestPlate.overall_confidence << endl;
       response.results.plates.push_back(clusters[i][best_index]);
     }
-  
+  }
+  else if (merge_strategy == MERGE_COMBINE)
+  {
+    // Each cluster is the same plate, just analyzed from a slightly different 
+    // perspective.  Merge them together and score them as if they are one
+
+    const float MIN_CONFIDENCE = 75;
+    
+
+    // Factor in the position of the plate in the topN list, the confidence, and the template match status
+    // First loop is for clusters of possible plates.  If they're in separate clusters, they don't get combined, 
+    // since they are likely separate plates in the same image
+    for (unsigned int unique_plate_idx = 0; unique_plate_idx < clusters.size(); unique_plate_idx++)
+    {
+      std::map<string, ResultPlateScore> score_hash;
+      
+      // Second loop is for separate plate results for the same plate
+      for (unsigned int i = 0; i < clusters[unique_plate_idx].size(); i++)
+      {
+        // Third loop is the individual topN results for a single plate result
+        for (unsigned int j = 0; j < clusters[unique_plate_idx][i].topNPlates.size() && j < topn; j++)
+        {
+          AlprPlate plateCandidate = clusters[unique_plate_idx][i].topNPlates[j];
+          
+          if (plateCandidate.overall_confidence < MIN_CONFIDENCE)
+            continue;
+
+          float score = (plateCandidate.overall_confidence - 60) * 4;
+
+          // Add a bonus for matching the template
+          if (plateCandidate.matches_template)
+            score += 150;
+
+          // Add a bonus the higher the plate is to the #1 position
+          // and how frequently it appears there
+          float position_score_max_bonus = 65;
+          float frequency_modifier = ((float) position_score_max_bonus) / topn;
+          score += position_score_max_bonus - (j * frequency_modifier);
+          
+
+          if (score_hash.find(plateCandidate.characters) == score_hash.end())
+          {
+            ResultPlateScore newentry;
+            newentry.plate = plateCandidate;
+            newentry.score_total = 0;
+            newentry.count = 0;
+            score_hash[plateCandidate.characters] = newentry;
+          }
+
+          score_hash[plateCandidate.characters].score_total += score;
+          score_hash[plateCandidate.characters].count += 1;
+          // Use the best confidence value for a particular candidate
+          if (plateCandidate.overall_confidence > score_hash[plateCandidate.characters].plate.overall_confidence)
+            score_hash[plateCandidate.characters].plate.overall_confidence = plateCandidate.overall_confidence;
+        }
+      }
+
+      // There is a big list of results that have scores.  Sort them by top score
+      std::vector<std::pair<float, ResultPlateScore> > sorted_results;
+      std::map<string, ResultPlateScore>::iterator iter;
+      for (iter = score_hash.begin(); iter != score_hash.end(); iter++) {
+        std::pair<float,ResultPlateScore> r;
+        r.second = iter->second;
+        r.first = iter->second.score_total;
+        sorted_results.push_back(r);
+      }
+
+      std::sort(sorted_results.begin(), sorted_results.end(), compareScore2);
+      
+      // output the sorted list for debugging:
+      if (config->debugGeneral)
+      {
+        cout << "Result Aggregator Scores: " << endl;
+        cout << "  " << std::setw(14) << "Plate Num"
+            << std::setw(15) << "Score"
+            << std::setw(10) << "Count"
+            << std::setw(10) << "Best conf (%)"
+            << endl;
+        
+        for (int r_idx = 0; r_idx < sorted_results.size(); r_idx++)
+        {
+          cout << "  " << std::setw(14) << sorted_results[r_idx].second.plate.characters
+                  << std::setw(15) << sorted_results[r_idx].second.score_total
+                  << std::setw(10) << sorted_results[r_idx].second.count
+                  << std::setw(10) << sorted_results[r_idx].second.plate.overall_confidence 
+                  << endl;
+
+        }
+      }
+      
+      if (sorted_results.size() > 0)
+      {
+        // Figure out the best region for this cluster
+        ResultRegionScore regionResults = findBestRegion(clusters[unique_plate_idx]);
+
+        AlprPlateResult firstResult = clusters[unique_plate_idx][0];
+        AlprPlateResult copyResult;
+        copyResult.bestPlate = sorted_results[0].second.plate;
+        copyResult.plate_index = firstResult.plate_index;
+        copyResult.region = regionResults.region;
+        copyResult.regionConfidence = regionResults.confidence;
+        copyResult.processing_time_ms = firstResult.processing_time_ms;
+        copyResult.requested_topn = firstResult.requested_topn;
+        for (int p_idx = 0; p_idx < 4; p_idx++)
+          copyResult.plate_points[p_idx] = firstResult.plate_points[p_idx];
+
+        for (int i = 0; i < sorted_results.size(); i++)
+        {
+          if (i >= topn)
+            break;
+
+          copyResult.topNPlates.push_back(sorted_results[i].second.plate);
+        }
+        
+        response.results.plates.push_back(copyResult);
+      }
+
+    }
+  }  
     //1/29/2016 adt, setting processing time for aggregator
     timespec endTime;
     getTimeMonotonic(&endTime);

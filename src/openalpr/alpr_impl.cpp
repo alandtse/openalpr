@@ -562,7 +562,7 @@ namespace alpr
     }
     //1/24/2016 adt, compare plateResult with priorResults. plateResult has already been added so it will be compared against the result_aggregator
     if (response.results.plates.size() > 0 && usePriorResults){
-      VidAggregator aggregator(MERGE_PICK_BEST, topN, config);
+      VidAggregator aggregator(MERGE_COMBINE, topN, config);
       AlprFullDetails tempFull, aggregate;
       std::string lastPlate, thisPlate;
       //fill the aggregator with prior results

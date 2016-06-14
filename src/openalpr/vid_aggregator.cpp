@@ -189,7 +189,7 @@ namespace alpr
       std::sort(sorted_results.begin(), sorted_results.end(), compareScore2);
       
       // output the sorted list for debugging:
-      if (config->debugGeneral)
+      if (config->debugAggregator)
       {
         cout << "Result Aggregator Scores: " << endl;
         cout << "  " << std::setw(14) << "Plate Num"
@@ -328,11 +328,11 @@ namespace alpr
         if (adjDistance <= maxLDistance)
         {
           //cout << "Levenshtein match: " << plate.bestPlate.characters << "\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;//levenshteinDistance(plateResult.bestPlate.characters, plate.bestPlate.characters,10) << endl;
-          cout << plateChars << " (" << plateOCRChars <<") Levenshtein added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
+          if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Levenshtein added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
           return i;
         }
         if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
-          cout << plateChars << " (" << plateOCRChars <<") overlap added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
+          if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") overlap added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
           return i;
         }
       }
@@ -340,7 +340,7 @@ namespace alpr
 
     }
 
-    cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]" << endl;
+    if (config->debugAggregator) cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]" << endl;
     return -1;
   }
   //1/25/2016 adt, calculate the next potential plate regions for each cluster based on frame in cluster.  If there is
@@ -376,21 +376,21 @@ namespace alpr
           height = maxy - miny;
          
         if (clusters[i].size() == 1) {// nothing to compare, just return last rectangle.      
-          cout << "Cluster["<<i<<"] returning non-moving rectangle " << minx << " " << miny << " " << width << " " << height << endl;          
+          if (config->debugAggregator) cout << "Cluster["<<i<<"] returning non-moving rectangle " << minx << " " << miny << " " << width << " " << height << endl;          
           pr.rect = cv::Rect(minx, miny , width, height);
           prs.push_back(pr);
           break;
         }else if (lastPlatex >=0) { //we already processed one frame, so calculate new coords based on velocities 
           float widthProportion = lastWidth,//(abs(lastWidth-width)/width)*lastWidth, TODO: Fix proportional sizing
             heightProportion = lastHeight;//(abs(lastHeight-height)/height)*lastHeight;
-          cout << lastPlatex << "," <<lastWidth <<"," << minx << "," <<width <<  "," <<heightProportion << endl;
-          cout << lastPlatey << "," <<lastHeight <<"," << miny << "," <<height << "," <<heightProportion << endl;
+          if (config->debugAggregator) cout << lastPlatex << "," <<lastWidth <<"," << minx << "," <<width <<  "," <<heightProportion << endl;
+          if (config->debugAggregator) cout << lastPlatey << "," <<lastHeight <<"," << miny << "," <<height << "," <<heightProportion << endl;
 
           int newx =  (minx + width/2)- (lastPlatex + lastWidth/2) + lastPlatex,
           newy =  (miny + height/2) - (lastPlatey + lastHeight/2)+ lastPlatey,
           newWidth = round(widthProportion),
           newHeight = round(heightProportion);
-          cout << "Cluster["<<i<<"] returning moving rectangle " << newx << " " << newy << " " << newWidth << " " << newHeight << endl;          
+          if (config->debugAggregator) cout << "Cluster["<<i<<"] returning moving rectangle " << newx << " " << newy << " " << newWidth << " " << newHeight << endl;          
           pr.rect = cv::Rect(newx, newy, newWidth, newHeight);
           prs.push_back(pr);
           break;

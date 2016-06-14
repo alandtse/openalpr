@@ -142,6 +142,7 @@ namespace alpr
       bool debugShowImages;
       bool debugPauseOnFrame;
       bool debugPauseOnPlates;
+      bool debugAggregator;//2016/06/14 allow debuging of Aggregator class
 
       void setDebug(bool value);
 

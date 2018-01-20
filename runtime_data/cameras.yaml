@@ -20,6 +20,11 @@ manufacturers:
     mjpeg: 
       - "http://[username]:[password]@[ip_address]/mjpeg?res=full&x0=0&y0=0&x1=100%&y1=100%&quality=12&doublescan=0&fps=15&ver=HTTP/1.1"
       - "http://[username]:[password]@[ip_address]/image?res=half&x0=0&y0=0&x1=1600&y1=1200&quality=15&doublescan=0"
+  Avigilon:
+    mjpeg:
+      - "http://[username]:[password]@[ip_address]/media/still.jpg"
+    h264:
+      - "rtsp://[username]:[password]@[ip_address]/defaultPrimary?streamType=u"
   Aviosys: 
     mjpeg: 
       - "http://[username]:[password]@[ip_address]/GetData.cgi"
@@ -53,6 +58,9 @@ manufacturers:
   CNB:
     h264:
       - "rtsp://[username]:[password]@[ip_address]/"
+  Dahua:
+    h264:
+      - "rtsp://[username]:[password]@[ip_address]:554/cam/realmonitor?channel=1&subtype=1"
   D-Link: 
     mjpeg: 
       - "http://[username]:[password]@[ip_address]/video/mjpg.cgi"
@@ -103,6 +111,9 @@ manufacturers:
   IQeye: 
     mjpeg: 
       - "http://[username]:[password]@[ip_address]/now.jpg?snap=spush"
+    h264:
+      - "rtsp://[username]:[password]@[ip_address]/stream1"
+      - "rtsp://[username]:[password]@[ip_address]/now.mp4&res=high"
   Intellinet: 
     mjpeg: 
       - "http://[username]:[password]@[ip_address]/jpg/image.jpg"
@@ -159,10 +170,12 @@ manufacturers:
   Qnap: 
     mjpeg: 
       - "http://[username]:[password]@[ip_address]/cgi/mjpg/mjpeg.cgi"
-  Samsung_SNB: 
+  Samsung: 
     mjpeg: 
       - "http://[username]:[password]@[ip_address]/video?submenu=mjpg"
       - "http://[username]:[password]@[ip_address]/video?submenu=jpg"
+    h264: 
+      - "rtsp://[ip_address]/profile1/media.smp"
   Sanyo: 
     mjpeg: 
       - "http://[username]:[password]@[ip_address]/liveimg.cgi?serverpush=1"
@@ -181,6 +194,8 @@ manufacturers:
       - "http://[username]:[password]@[ip_address]/image"
       - "http://[username]:[password]@[ip_address]/image?speed=0"
       - "http://[username]:[password]@[ip_address]/oneshotimage.jpg"
+    h264:
+      - "rtsp://[username]:[password]@[ip_address]/media/video1"
   Surecom: 
     mjpeg: 
       - "http://[username]:[password]@[ip_address]/mjpeg.cgi"

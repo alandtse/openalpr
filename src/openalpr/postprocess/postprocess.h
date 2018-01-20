@@ -23,12 +23,9 @@
 #include "regexrule.h"
 #include "constants.h"
 #include "utility.h"
-#include <fstream>
-#include <iostream>
-#include <stdio.h>
-#include <queue>
-#include <vector>
 #include <set>
+#include <string>
+#include <vector>
 #include "config.h"
 
 
@@ -77,6 +74,8 @@ namespace alpr
       
       std::vector<std::string> getPatterns();
       
+      void setConfidenceThreshold(float min_confidence, float skip_level);
+      
     private:
       Config* config;
 
@@ -94,6 +93,9 @@ namespace alpr
 
       std::vector<PPResult> allPossibilities;
       std::set<std::string> allPossibilitiesLetters;
+      
+      float min_confidence;
+      float skip_level;
   };
 
 }

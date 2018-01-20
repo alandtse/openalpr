@@ -157,6 +157,7 @@ namespace alpr
       sub_results.results.epoch_time = start_time;
       sub_results.results.img_width = img.cols;
       sub_results.results.img_height = img.rows;
+      sub_results.results.regionsOfInterest = response.results.regionsOfInterest;
       
       country_aggregator.addResults(sub_results);
     }
@@ -566,6 +567,21 @@ namespace alpr
 
 
 
+  std::string AlprImpl::toJson( const AlprPlateResult result )
+  {
+    cJSON *resultObj = createJsonObj( &result );
+    
+    char *out;
+    out=cJSON_PrintUnformatted(resultObj);
+
+    cJSON_Delete(resultObj);
+
+    string response(out);
+
+    free(out);
+    
+    return response;
+  }
   cJSON* AlprImpl::createJsonObj(const AlprPlateResult* result)
   {
     cJSON *root, *coords, *candidates;
@@ -760,7 +776,7 @@ namespace alpr
         // Country training data has not already been loaded.  Load it.
         AlprRecognizers recognizer;
         recognizer.plateDetector = createDetector(config, prewarp);
-        recognizer.ocr = new OCR(config);
+        recognizer.ocr = createOcr(config);
 
         #ifndef SKIP_STATE_DETECTION
         recognizer.stateDetector = new StateDetector(this->config->country, this->config->config_file_path, this->config->runtimeBaseDir);

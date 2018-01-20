@@ -4,6 +4,7 @@
 set(lpr_source_files
  alpr.cpp
  alpr_impl.cpp
+ alpr_c.cpp
  config.cpp
  config_helper.cpp
  detection/detector.cpp
@@ -15,14 +16,16 @@ set(lpr_source_files
  detection/detectormask.cpp
  licenseplatecandidate.cpp
  utility.cpp
- ocr.cpp
+ ocr/tesseract_ocr.cpp
+ ocr/ocr.cpp
+ ocr/ocrfactory.cpp
  postprocess/postprocess.cpp
  postprocess/regexrule.cpp
  binarize_wolf.cpp
- segmentation/charactersegmenter.cpp
- segmentation/histogram.cpp
- segmentation/histogramvertical.cpp
- segmentation/histogramhorizontal.cpp
+ ocr/segmentation/charactersegmenter.cpp
+ ocr/segmentation/histogram.cpp
+ ocr/segmentation/histogramvertical.cpp
+ ocr/segmentation/histogramhorizontal.cpp
  edges/edgefinder.cpp
  edges/platecorners.cpp
  edges/platelines.cpp
@@ -62,6 +65,7 @@ TARGET_LINK_LIBRARIES(openalpr
 
 
 install (FILES   alpr.h     DESTINATION    ${CMAKE_INSTALL_PREFIX}/include)
+install (FILES   alpr_c.h     DESTINATION    ${CMAKE_INSTALL_PREFIX}/include)
 install (TARGETS openalpr-static DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install (TARGETS openalpr   DESTINATION    ${CMAKE_INSTALL_PREFIX}/lib)
 

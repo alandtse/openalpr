@@ -1,19 +1,12 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include <string>
 #include <string.h>
+#include <vector>
 
 #include <alpr.h>
 #include "openalprgo.h"
 
 extern "C" {
 
-#if defined(_MSC_VER)
-    //  Microsoft
-#define OPENALPR_EXPORT __declspec(dllexport)
-#else
-    //  do nothing
-#define OPENALPR_EXPORT
-#endif
 
     //using namespace alpr;
     OPENALPR_EXPORT Alpr AlprInit(char* country, char* configFile, char* runtimeDir) {

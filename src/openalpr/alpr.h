@@ -20,10 +20,9 @@
 #ifndef OPENALPR_ALPR_H
 #define OPENALPR_ALPR_H
 
-#include <iostream>
-#include <vector>
-#include <fstream> 
+#include <string>
 #include <stdint.h>
+#include <vector>
 
 #ifdef WIN32
   #define OPENALPR_DLL_EXPORT __declspec( dllexport )
@@ -163,6 +162,7 @@ namespace alpr
 
 
       static std::string toJson(const AlprResults results);
+      static std::string toJson(const AlprPlateResult result);
       static AlprResults fromJson(std::string json);
 
       bool isLoaded();

@@ -36,8 +36,8 @@
 
 #include "licenseplatecandidate.h"
 #include "../statedetection/state_detector.h"
-#include "segmentation/charactersegmenter.h"
-#include "ocr.h"
+#include "ocr/ocr.h"
+#include "ocr/ocrfactory.h"
 
 #include "constants.h"
 
@@ -99,6 +99,8 @@ namespace alpr
       void setDefaultRegion(std::string region);
 
       static std::string toJson( const AlprResults results );
+      static std::string toJson( const AlprPlateResult result );
+      
       static AlprResults fromJson(std::string json);
       static std::string getVersion();
 

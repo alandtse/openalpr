@@ -581,7 +581,7 @@ namespace alpr
           if (config->debugGeneral) {
             lastPlate = (i == 0)? "":priorResults[i-1].plates[k].bestPlate.characters;
             thisPlate = priorResults[i].plates[k].bestPlate.characters;
-            cout << "priorResults[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
+            if (config->debugAggregator) cout << priorResults[i].plates[k].plate_index << "\tpriorResults[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
                 "x["<< min (priorResults[i].plates[k].plate_points[0].x, priorResults[i].plates[k].plate_points[3].x) << "," <<
                 max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
                 "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
@@ -602,7 +602,7 @@ namespace alpr
           AlprResults aggregateResults = aggregate.results;
           for (int j = 0; j < aggregateResults.plates[cluster_index].topNPlates.size(); j++){ //find any region match to promote to top of candidates
             if (aggregateResults.plates[cluster_index].topNPlates[j].matches_template){ //set bestPlate to template match candidate
-              if (config->debugGeneral){
+              if (config->debugAggregator){
                 cout << "Promoting template match found with candidate index: " <<  j << " plate: " << aggregateResults.plates[cluster_index].topNPlates[j].characters << "\t" << aggregateResults.plates[cluster_index].topNPlates[j].overall_confidence 
                   << " replacing: " << aggregateResults.plates[cluster_index].bestPlate.characters << "\t" << aggregateResults.plates[cluster_index].bestPlate.overall_confidence << endl;
               }
@@ -613,7 +613,7 @@ namespace alpr
           AlprPlateResult aggregatePlate = aggregateResults.plates[cluster_index];
           if (((aggregatePlate.bestPlate.overall_confidence > plateResult.bestPlate.overall_confidence) && (aggregatePlate.bestPlate.matches_template == plateResult.bestPlate.matches_template))
             || (aggregatePlate.bestPlate.matches_template && !plateResult.bestPlate.matches_template)){
-            cout << "clusterHistory found better at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
+            if (config->debugAggregator) cout << "clusterHistory found better at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
               << "\t vs frame: " << response.results.frame_number << " : " << plateResult.bestPlate.characters << " " << plateResult.bestPlate.overall_confidence << " match:" << plateResult.bestPlate.matches_template << endl;
             //TODO:Figure out what aggregateResults since character details won't necessarily be at the same coords
             response.results.plates[i].bestPlate.characters = aggregatePlate.bestPlate.characters;  
@@ -626,7 +626,7 @@ namespace alpr
             aggregateResults.plates[cluster_index] = aggregatePlate; //Needed for debug output below to work.
     
           }else {
-          cout << "clusterHistory result worse at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
+          if (config->debugAggregator)cout << "clusterHistory result worse at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
             << "\t vs frame: " << response.results.frame_number << " : " << plateResult.bestPlate.characters << " " << plateResult.bestPlate.overall_confidence << " match:" << plateResult.bestPlate.matches_template << endl;
             if (groupResults.size() > cluster_index) 
                 groupResults[cluster_index] = response.results.plates;
@@ -637,14 +637,14 @@ namespace alpr
               for (int i = 0; i<aggregateResults.plates.size(); i++){
                 lastPlate = (i == 0)? "":aggregateResults.plates[i-1].bestPlate.characters;
                 thisPlate = aggregateResults.plates[i].bestPlate.characters;
-                cout << "aggregate[" <<i <<"]:\t" << 
+                if (config->debugAggregator)cout << "aggregate[" <<i <<"]:\t" << 
                   "x["<< min (aggregateResults.plates[i].plate_points[0].x, aggregateResults.plates[i].plate_points[3].x) << "," <<
                   max (aggregateResults.plates[i].plate_points[1].x, aggregateResults.plates[i].plate_points[2].x) << "]" << 
                   "y["<< min (aggregateResults.plates[i].plate_points[0].y, aggregateResults.plates[i].plate_points[1].y) << "," <<
                   max (aggregateResults.plates[i].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" << 
               "\t"<< aggregateResults.plates[i].bestPlate.characters << "\t\t" << aggregateResults.plates[i].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10) << "\t method:" << aggregateResults.plates[i].bestPlate.method <<endl;
               }
-            if (config->debugGeneral) cout << toJson(response.results) << endl;
+            if (config->debugAggregator) cout << toJson(response.results) << endl;
           }
         }
     
@@ -1071,7 +1071,7 @@ namespace alpr
   string AlprImpl::platesToCSV()
   {
     string response;
-    response = "id,group_id,country,plate_number,confidence,frame_num,video_time_s,matches_pattern,tracking_hash,x1,y1,x2,y2,x3,y3,x4,y4,img_name,region,region_confidence,method\n";
+    response = "id,group_id,country,plate_number,confidence,frame_num,video_time_s,matches_pattern,tracking_hash,x1,y1,x2,y2,x3,y3,x4,y4,img_name,region,region_confidence,bestmethod,ocr,ocrConfidence,ocrmatch\n";
     for (int i=0; i < priorResults.size(); i++){
       for (int j=0; j < priorResults[i].plates.size(); j++){
         //response += to_string(i) + ",";

@@ -234,6 +234,7 @@ namespace alpr
     debugShowImages = 	getBoolean(ini, defaultIni, "", "debug_show_images",	false);
     debugPauseOnFrame = 	getBoolean(ini, defaultIni, "", "debug_pause_on_frame",	false);
     debugPauseOnPlates = 	getBoolean(ini, "", "debug_pause_on_plates",	false); //2016/06/13 adt, fixing clobbered pauseonplates
+    debugAggregator = 	getBoolean(ini, "", "debug_aggregator",	false); //2016/06/14 adt, adding debug for Aggregator
   }
 
 
@@ -337,6 +338,7 @@ namespace alpr
     debugPauseOnFrame = value;
     debugPauseOnPlates = value; //2016/06/13 adt, fixing clobbered pauseonplates
     debugShowImages = value;
+    debugAggregator = value; //2016/06/14 adt, adding debug for Aggregator
   }
 
 

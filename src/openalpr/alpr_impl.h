@@ -36,8 +36,8 @@
 
 #include "licenseplatecandidate.h"
 #include "../statedetection/state_detector.h"
-#include "segmentation/charactersegmenter.h"
-#include "ocr.h"
+#include "ocr/ocr.h"
+#include "ocr/ocrfactory.h"
 
 #include "constants.h"
 
@@ -102,6 +102,8 @@ namespace alpr
 
 
       static std::string toJson( const AlprResults results );
+      static std::string toJson( const AlprPlateResult result );
+      
       static AlprResults fromJson(std::string json);
       static std::string getVersion();
       //2016/06/03 adt, video processing output functions

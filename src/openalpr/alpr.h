@@ -24,7 +24,9 @@
 #include <vector>
 #include <map>     // 2016/05/24 adt, adding hashmap
 #include <fstream> 
+#include <string>
 #include <stdint.h>
+#include <vector>
 
 #ifdef WIN32
   #define OPENALPR_DLL_EXPORT __declspec( dllexport )
@@ -209,6 +211,7 @@ namespace alpr
 
 
       static std::string toJson(const AlprResults results);
+      static std::string toJson(const AlprPlateResult result);
       static AlprResults fromJson(std::string json);
       //2016/06/03 adt, video processing output functions
       std::string platesToCSV();

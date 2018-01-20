@@ -20,6 +20,8 @@
 #include "alpr.h"
 #include "alpr_impl.h"
 
+#include <fstream>
+
 namespace alpr
 {
 
@@ -81,6 +83,10 @@ namespace alpr
   std::string Alpr::toJson( AlprResults results )
   {
     return AlprImpl::toJson(results);
+  }
+  std::string Alpr::toJson( AlprPlateResult result )
+  {
+    return AlprImpl::toJson(result);
   }
 
   AlprResults Alpr::fromJson(std::string json) {

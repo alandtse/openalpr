@@ -19,6 +19,10 @@
 
 #include "postprocess.h"
 
+#include <fstream>
+#include <queue>
+#include <utility>
+
 using namespace std;
 
 namespace alpr
@@ -28,6 +32,9 @@ namespace alpr
   {
     this->config = config;
 
+    this->min_confidence = 0;
+    this->skip_level = 0;
+    
     stringstream filename;
     filename << config->getPostProcessRuntimeDir() << "/" << config->country << ".patterns";
 
@@ -53,9 +60,6 @@ namespace alpr
       }
     }
 
-    //vector<RegexRule> test = rules["base"];
-    //for (int i = 0; i < test.size(); i++)
-    //  cout << "Rule: " << test[i].regex << endl;
   }
 
   PostProcess::~PostProcess()
@@ -71,17 +75,23 @@ namespace alpr
       }
     }
   }
+  
+  void PostProcess::setConfidenceThreshold(float min_confidence, float skip_level) {
+    this->min_confidence = min_confidence;
+    this->skip_level = skip_level;
+  }
+
 
   void PostProcess::addLetter(string letter, int line_index, int charposition, float score)
   {
-    if (score < config->postProcessMinConfidence)
+    if (score < min_confidence)
       return;
 
     insertLetter(letter, line_index, charposition, score);
 
-    if (score < config->postProcessConfidenceSkipLevel)
+    if (score < skip_level)
     {
-      float adjustedScore = abs(config->postProcessConfidenceSkipLevel - score) + config->postProcessMinConfidence;
+      float adjustedScore = abs(skip_level - score) + min_confidence;
       insertLetter(SKIP_CHAR, line_index, charposition, adjustedScore );
     }
 
@@ -93,7 +103,7 @@ namespace alpr
 
   void PostProcess::insertLetter(string letter, int line_index, int charposition, float score)
   {
-    score = score - config->postProcessMinConfidence;
+    score = score - min_confidence;
 
     int existingIndex = -1;
     if (letters.size() < charposition + 1)
@@ -265,7 +275,7 @@ namespace alpr
     {
       if (letters[i].size() > 0)
       {
-        totalScore += (letters[i][0].totalscore / letters[i][0].occurrences) + config->postProcessMinConfidence;
+        totalScore += (letters[i][0].totalscore / letters[i][0].occurrences) + min_confidence;
         numScores++;
       }
     }
@@ -388,7 +398,6 @@ namespace alpr
         possibility.matchesTemplate = regionRules[i]->match(possibility.letters);
         if (possibility.matchesTemplate)
         {
-          possibility.letters = regionRules[i]->filterSkips(possibility.letters);
           break;
         }
       }

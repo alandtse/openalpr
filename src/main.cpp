@@ -166,7 +166,7 @@ int main( int argc, const char** argv )
       frame = cv::imdecode(cv::Mat(data), 1);
       if (!frame.empty())
       {
-        detectandshow(&alpr, frame, "", outputJson);
+        detectandshow(&alpr, frame, "", outputJson, regionCoords);
       }
       else
       {

@@ -28,6 +28,8 @@
 
 #include "alpr_impl.h"
 #include "result_aggregator.h"
+#include <iomanip>
+
 
 namespace alpr
 {

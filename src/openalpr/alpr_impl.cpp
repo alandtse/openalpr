@@ -573,20 +573,20 @@ namespace alpr
     }
     //1/24/2016 adt, compare plateResult with priorResults. plateResult has already been added so it will be compared against the result_aggregator
     if (response.results.plates.size() > 0 && usePriorResults){
-      VidAggregator aggregator(MERGE_COMBINE, topN, config);
+      VidAggregator aggregator(MERGE_PICK_BEST, topN, config);
       AlprFullDetails aggregate;
       std::string lastPlate, thisPlate;
       //fill the aggregator with prior results
       for (int i = 0; i<priorResults.size(); i++){
         for (int k = 0; k < priorResults[i].plates.size(); k++ ){
           if (config->debugGeneral) {
-            lastPlate = (i == 0)? "":priorResults[i-1].plates[k].bestPlate.characters;
+            lastPlate = (i == 0)? "":priorResults[i-1].plates[0].bestPlate.characters; //NOTE: Lastplate is nonsensical if more than one plateresult in frame
             thisPlate = priorResults[i].plates[k].bestPlate.characters;
-            if (config->debugAggregator) cout << priorResults[i].plates[k].plate_index << "\tpriorResults[" << i << "]:frame(" << priorResults[i].frame_number << ")\t" << 
+            if (config->debugAggregator) cout << priorResults[i].plates[k].plate_index << "\tpriorResults[" << i << "].plates["<<k<<"]:frame(" << priorResults[i].frame_number << ")\t" <<
                 "x["<< min (priorResults[i].plates[k].plate_points[0].x, priorResults[i].plates[k].plate_points[3].x) << "," <<
-                max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" << 
+                max (priorResults[i].plates[k].plate_points[1].x, priorResults[i].plates[k].plate_points[2].x) << "]" <<
                 "y["<< min (priorResults[i].plates[k].plate_points[0].y, priorResults[i].plates[k].plate_points[1].y) << "," <<
-                max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[k].plate_points[3].y) << "]" << 
+                max (priorResults[i].plates[k].plate_points[2].y, priorResults[i].plates[k].plate_points[3].y) << "]" <<
             "\t"<< thisPlate << "\t\t" << priorResults[i].plates[k].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10)<< "\tlength: " << thisPlate.length() << endl;
           }
           aggregate.results = priorResults[i];

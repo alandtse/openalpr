@@ -395,7 +395,23 @@ int levenshteinDistance (const std::string &s1, const std::string &s2, int max)
     return returnval;
 }
   
+int matchingChars (const std::string &s1, const std::string &s2)
+{
+    const char* word1 = s1.c_str();
+    int len1 = s1.length();
+    const char* word2 = s2.c_str();
+    int len2 = s2.length();
   
+    int i;
+    int matches = 0;
+    
+    for (i = 0; i <= len2 && i<= len1; i++) {
+      if (word1[i] == word2[i])
+      matches++;
+    }
+
+    return matches;
+}
   LineSegment::LineSegment()
   {
     init(0, 0, 0, 0);

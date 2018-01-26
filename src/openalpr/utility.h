@@ -107,6 +107,8 @@ namespace alpr
   cv::Point findClosestPoint(cv::Point2f* polygon_points, int num_points, cv::Point position);
   
   int levenshteinDistance (const std::string &s1, const std::string &s2, int max);
+  int matchingChars (const std::string &s1, const std::string &s2);
+
   std::string toString(int value);
   std::string toString(long value);
   std::string toString(unsigned int value);

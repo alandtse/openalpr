@@ -288,7 +288,7 @@ namespace alpr
 
     PlateShapeInfo psi = getShapeInfo(plate);
     AlprPlateResult plateResult;
-    int distance, adjDistance;
+    int distance, adjDistance, matchedChars;
 
     for (unsigned int i = clusters.size(); i-- > 0;) //1/24/2016 adt,reverse order so latest frames first
     {
@@ -322,17 +322,19 @@ namespace alpr
         distance = levenshteinDistance(plateOCRChars, plateResultOCRChars, max(plateOCRChars.size(),plateResultOCRChars.size()));
         // calculate adjusted distance which will adjust distance based on lengths of characters in case of occlusions.
         adjDistance = distance - abs((int) plateOCRChars.length() - (int) plateResultOCRChars.length());
+        
         //cout << plateChars << " (" << plateOCRChars <<") vs \t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
-
+        matchedChars = matchingChars(plateOCRChars, plateResultOCRChars);
+        //TODO: Need to check all clusters for matches in case of multiple clusters per frame
         //Do a comparison to the last plate in the cluster for levenshteinDistance match using adjDistance
-        if (adjDistance <= maxLDistance)
+        if (adjDistance <= maxLDistance && (diffx <= 1.5*max_x_diff && diffy <= 1.5*max_y_diff && area_diff <= max_area_diff))
         {
           //cout << "Levenshtein match: " << plate.bestPlate.characters << "\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;//levenshteinDistance(plateResult.bestPlate.characters, plate.bestPlate.characters,10) << endl;
-          if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Levenshtein added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
+          if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Levenshtein added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
           return i;
         }
         if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
-          if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") overlap added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
+          if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") overlap added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
           return i;
         }
       }

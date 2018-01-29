@@ -596,7 +596,7 @@ namespace alpr
       std::vector<std::vector<AlprPlateResult> > clusters = aggregator.findClusters();
       for (int i = 0; i < response.results.plates.size(); i++) {
         AlprPlateResult plateResult = response.results.plates[i];
-        int cluster_index = aggregator.overlaps(plateResult, clusters, 2); // match to all regions with overlap
+        int cluster_index = aggregator.overlaps(plateResult, 2); // match to all regions with overlap
         response.results.plates[i].group_id=(cluster_index >= 0)? cluster_index: clusters.size(); 
         if (cluster_index >= 0){ // compare to aggregate results
           aggregate = aggregator.getAggregateResults();

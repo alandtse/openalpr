@@ -34,7 +34,9 @@ namespace alpr
 #if OPENCV_MAJOR_VERSION == 2
     if( this->cuda_cascade.load( get_detector_file() ) )
 #else
-    if( this->cuda_cascade->create( get_detector_file() ) )
+    cuda_cascade = cuda::CascadeClassifier::create(get_detector_file());
+    if( !this->cuda_cascade.get()->empty() )
+//    if( this->cuda_cascade->create( get_detector_file() ) )
 #endif
     {
       this->loaded = true;
@@ -55,7 +57,7 @@ namespace alpr
   {
     //-- Detect plates
     vector<Rect> plates;
-    
+
     timespec startTime;
     getTimeMonotonic(&startTime);
 
@@ -68,8 +70,8 @@ namespace alpr
 
     cudaFrame.upload(frame);
 #if OPENCV_MAJOR_VERSION == 2
-    int numdetected = cuda_cascade.detectMultiScale(cudaFrame, plateregions_buffer, 
-            (double) config->detection_iteration_increase, config->detectionStrictness, 
+    int numdetected = cuda_cascade.detectMultiScale(cudaFrame, plateregions_buffer,
+            (double) config->detection_iteration_increase, config->detectionStrictness,
             min_plate_size);
 #else
     cuda_cascade->setScaleFactor((double) config->detection_iteration_increase);
@@ -81,7 +83,7 @@ namespace alpr
 	cuda_cascade->convert(plateregions_buffer, detected);
 	int numdetected = detected.size();
 #endif
-    
+
     plateregions_buffer.colRange(0, numdetected).download(plateregions_downloaded);
 
     for (int i = 0; i < numdetected; ++i)
@@ -95,7 +97,7 @@ namespace alpr
       getTimeMonotonic(&endTime);
       cout << "LBP Time: " << diffclock(startTime, endTime) << "ms." << endl;
     }
-    
+
     return plates;
   }
 

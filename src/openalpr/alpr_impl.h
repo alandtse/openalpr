@@ -1,18 +1,18 @@
 /*
  * Copyright (c) 2015 OpenALPR Technology, Inc.
  * Open source Automated License Plate Recognition [http://www.openalpr.com]
- * 
+ *
  * This file is part of OpenALPR.
- * 
+ *
  * OpenALPR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License 
- * version 3 as published by the Free Software Foundation 
- * 
+ * it under the terms of the GNU Affero General Public License
+ * version 3 as published by the Free Software Foundation
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
@@ -48,18 +48,19 @@
 #include "prewarp.h"
 
 #include <opencv2/core/core.hpp>
-   
+
 #include "support/platform.h"
 #include "support/utf8.h"
+
+
 
 #define DEFAULT_TOPN 25
 #define DEFAULT_DETECT_REGION false
 
 #define ALPR_NULL_PTR 0
-
 namespace alpr
 {
-
+  class VidAggregator;
   struct AlprFullDetails
   {
     std::vector<PlateRegion> plateRegions;
@@ -93,7 +94,7 @@ namespace alpr
       void setCountry(std::string country);
       void setPrewarp(std::string prewarp_config);
       void setMask(unsigned char* pixelData, int bytesPerPixel, int imgWidth, int imgHeight);
-      
+
       void setDetectRegion(bool detectRegion);
       void setTopN(int topn);
       void setDefaultRegion(std::string region);
@@ -103,15 +104,15 @@ namespace alpr
 
       static std::string toJson( const AlprResults results );
       static std::string toJson( const AlprPlateResult result );
-      
+
       static AlprResults fromJson(std::string json);
       static std::string getVersion();
       //2016/06/03 adt, video processing output functions
       std::string platesToCSV();
       std::string groupsToCSV();
-      
+
       static cJSON* createJsonObj(const AlprPlateResult* result);
-      
+
       Config* config;
 
       bool isLoaded();
@@ -122,8 +123,10 @@ namespace alpr
       //1/23/2016 adt, adding historical values to allow video tracking
       std::vector<AlprResults> priorResults;
       std::vector<std::vector<AlprPlateResult> > groupResults; //TODO: Need to change this to AlprGroupResult
+
+
       int64_t frame_number;
-      
+
       PreWarp* prewarp;
 
       int topN;
@@ -132,14 +135,14 @@ namespace alpr
       int64_t vidFrame;  //2016/06/05 adt, storing video data
       double vidTime; //2016/06/05 adt, storing video data
       int plateCount; //2016/06/05 adt, total plates found by implementation
-
       void loadRecognizers();
-      
+      VidAggregator *pAggregator;
       cv::Mat getCharacterTransformMatrix(PipelineData* pipeline_data );
       std::vector<AlprCoordinate> getCharacterPoints(cv::Rect char_rect, cv::Mat transmtx);
       std::vector<cv::Rect> convertRects(std::vector<AlprRegionOfInterest> regionsOfInterest);
 
   };
+
 }
 
 

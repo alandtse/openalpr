@@ -20,7 +20,7 @@
  * Copyright (c) 2016 Alan D. Tse.
  * Extends result_aggregator and is intended to perform aggregation functions on different frames from same video
  */
- 
+
 #include "vid_aggregator.h"
 
 using namespace std;
@@ -31,10 +31,12 @@ namespace alpr
 
   void VidAggregator::addResults(AlprFullDetails full_results)
   {
+    if (config->debugAggregator) cout << "Adding result to existing " << all_results.size() << " items."<< endl;
+    std::vector<int> cluster_indexes = overlaps(full_results.results.plates, 2); //1/24/2016 adt, setting maxLevenStein distance of 2 for overloaded function
     for (unsigned int plate_id = 0; plate_id < full_results.results.plates.size(); plate_id++)
     {
       AlprPlateResult plate = full_results.results.plates[plate_id];
-      int cluster_index = overlaps(plate, 2); //1/24/2016 adt, setting maxLevenStein distance of 2 for overloaded function
+      int cluster_index = cluster_indexes[plate_id];
       if (cluster_index < 0)
       {
         vector<AlprPlateResult> new_cluster;
@@ -53,19 +55,19 @@ namespace alpr
   bool compareScore2(const std::pair<float, ResultPlateScore>& firstElem, const std::pair<float, ResultPlateScore>& secondElem) {
     return firstElem.first > secondElem.first;
   }
-  
+
   AlprFullDetails VidAggregator::getAggregateResults()
   {
     assert(all_results.size() > 0);
-  
+
     if (all_results.size() == 1)
       return all_results[0];
-  
+
     timespec startTime; //1/29/2016 adt, adding timing benchmark to aggregateResults
     getTimeMonotonic(&startTime);
-    
+
     AlprFullDetails response;
-  
+
     // Plate regions are needed for benchmarking
     // Copy all detected boxes across all results
     for (unsigned int i = 0; i < all_results.size(); i++)
@@ -73,20 +75,20 @@ namespace alpr
       for (unsigned int k = 0; k < all_results[i].plateRegions.size(); k++)
         response.plateRegions.push_back(all_results[i].plateRegions[k]);
     }
-  
-  
+
+
     response.results.epoch_time = all_results.back().results.epoch_time; //1/28/2016 adt, setting last added result
     response.results.frame_number = all_results.back().results.frame_number; //1/24/2016 adt, adding frame_number; select last added result
     //cout << "Set frame_number: " << response.results.frame_number << endl;
     response.results.img_height = all_results[0].results.img_height;
     response.results.img_width = all_results[0].results.img_width;
-    response.results.total_processing_time_ms = all_results.back().results.total_processing_time_ms; 
+    response.results.total_processing_time_ms = all_results.back().results.total_processing_time_ms;
     response.results.regionsOfInterest = all_results.back().results.regionsOfInterest;
 
     if (merge_strategy == MERGE_PICK_BEST)
     {
     // Assume we have multiple results, one cluster for each unique train data (e.g., eu, eu2)
-  
+
     // Now for each cluster of plates, pick the best one
     for (unsigned int i = 0; i < clusters.size(); i++)
     {
@@ -101,7 +103,7 @@ namespace alpr
           best_index = k;
         }
         //2016/05/15 adt, create list of candidates based off all plates in cluster instead of just bestPlate.
-        // NOTE: this may break other openalpr implementations that assume candidates will come from a single plate 
+        // NOTE: this may break other openalpr implementations that assume candidates will come from a single plate
         newCandidates.reserve(newCandidates.size() + clusters[i][k].topNPlates.size());
         newCandidates.insert(newCandidates.end(), clusters[i][k].topNPlates.begin(), clusters[i][k].topNPlates.end());
       }
@@ -127,19 +129,19 @@ namespace alpr
   }
   else if (merge_strategy == MERGE_COMBINE)
   {
-    // Each cluster is the same plate, just analyzed from a slightly different 
+    // Each cluster is the same plate, just analyzed from a slightly different
     // perspective.  Merge them together and score them as if they are one
 
     const float MIN_CONFIDENCE = 75;
-    
+
 
     // Factor in the position of the plate in the topN list, the confidence, and the template match status
-    // First loop is for clusters of possible plates.  If they're in separate clusters, they don't get combined, 
+    // First loop is for clusters of possible plates.  If they're in separate clusters, they don't get combined,
     // since they are likely separate plates in the same image
     for (unsigned int unique_plate_idx = 0; unique_plate_idx < clusters.size(); unique_plate_idx++)
     {
       std::map<string, ResultPlateScore> score_hash;
-      
+
       // Second loop is for separate plate results for the same plate
       for (unsigned int i = 0; i < clusters[unique_plate_idx].size(); i++)
       {
@@ -147,7 +149,7 @@ namespace alpr
         for (unsigned int j = 0; j < clusters[unique_plate_idx][i].topNPlates.size() && j < topn; j++)
         {
           AlprPlate plateCandidate = clusters[unique_plate_idx][i].topNPlates[j];
-          
+
           if (plateCandidate.overall_confidence < MIN_CONFIDENCE)
             continue;
 
@@ -162,7 +164,7 @@ namespace alpr
           float position_score_max_bonus = 65;
           float frequency_modifier = ((float) position_score_max_bonus) / topn;
           score += position_score_max_bonus - (j * frequency_modifier);
-          
+
 
           if (score_hash.find(plateCandidate.characters) == score_hash.end())
           {
@@ -192,7 +194,7 @@ namespace alpr
       }
 
       std::sort(sorted_results.begin(), sorted_results.end(), compareScore2);
-      
+
       // output the sorted list for debugging:
       if (config->debugAggregator)
       {
@@ -202,18 +204,18 @@ namespace alpr
             << std::setw(10) << "Count"
             << std::setw(10) << "Best conf (%)"
             << endl;
-        
+
         for (int r_idx = 0; r_idx < sorted_results.size(); r_idx++)
         {
           cout << "  " << std::setw(14) << sorted_results[r_idx].second.plate.characters
                   << std::setw(15) << sorted_results[r_idx].second.score_total
                   << std::setw(10) << sorted_results[r_idx].second.count
-                  << std::setw(10) << sorted_results[r_idx].second.plate.overall_confidence 
+                  << std::setw(10) << sorted_results[r_idx].second.plate.overall_confidence
                   << endl;
 
         }
       }
-      
+
       if (sorted_results.size() > 0)
       {
         // Figure out the best region for this cluster
@@ -237,17 +239,17 @@ namespace alpr
 
           copyResult.topNPlates.push_back(sorted_results[i].second.plate);
         }
-        
+
         response.results.plates.push_back(copyResult);
       }
 
     }
-  }  
+  }
     //1/29/2016 adt, setting processing time for aggregator
     timespec endTime;
     getTimeMonotonic(&endTime);
     response.results.total_processing_time_ms += diffclock(startTime, endTime);
-    
+
     return response;
   }
   std::vector<std::vector<AlprPlateResult> > VidAggregator::findClusters()
@@ -264,10 +266,11 @@ namespace alpr
     lastClusterCalc = all_results.size();
     for (unsigned int i = 0; i < all_results.size(); i++)
     {
+      std::vector<int> cluster_indexes = overlaps(all_results[i].results.plates, 2); //1/24/2016 adt, setting maxLevenStein distance of 2 for overloaded function
       for (unsigned int plate_id = 0; plate_id < all_results[i].results.plates.size(); plate_id++)
       {
         AlprPlateResult plate = all_results[i].results.plates[plate_id];
-        int cluster_index = overlaps(plate, 2); //1/24/2016 adt, setting maxLevenStein distance of 2 for overloaded function
+        int cluster_index = cluster_indexes[plate_id];
         if (cluster_index < 0)
         {
           vector<AlprPlateResult> new_cluster;
@@ -286,24 +289,26 @@ namespace alpr
   // where the plate may have moved beyond the overlap but is sufficiently close. This will start from the latest entries and only process images from the last frame for each cluster.
   // Returns the cluster ID if the plate overlaps or if no overlap, Levenshtein distance is less than maxLDistance.  Otherwise returns -1
   // TODO: Clear out old clusters if overlaps; match to cluster if > 2 spots identical
-  int VidAggregator::overlaps(AlprPlateResult plate,
+  std::vector<int> VidAggregator::overlaps(std::vector<AlprPlateResult> plates,
                                  int maxLDistance)
   {
+    std::vector<int> results;
+    for (int h=0; h < plates.size(); h++){
+    AlprPlateResult plate = plates[h];
     // Check the center positions to see how close they are to each other
     // Also compare the size.  If it's much much larger/smaller, treat it as a separate cluster
-
     PlateShapeInfo psi = getShapeInfo(plate);
     AlprPlateResult plateResult;
     int distance, adjDistance, matchedChars;
 
     for (unsigned int i = clusters.size(); i-- > 0;) //1/24/2016 adt,reverse order so latest frames first
     {
-      for (unsigned int k = clusters[i].size(); k-- > 0;) 
+      for (unsigned int k = clusters[i].size(); k-- > 0;)
       {
         plateResult = clusters[i][k];
-          
+
         PlateShapeInfo cluster_shapeinfo = getShapeInfo(plateResult);
-        
+
         int diffx = abs(psi.center.x - cluster_shapeinfo.center.x);
         int diffy = abs(psi.center.y - cluster_shapeinfo.center.y);
 
@@ -334,26 +339,31 @@ namespace alpr
         //TODO: Need to check all clusters for matches in case of multiple clusters per frame
         //Do a comparison to the last plate in the cluster for levenshteinDistance match using adjDistance
 
-        if (matchedChars >= minMatches)
-        {
+        if (matchedChars >= minMatches){
           if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Multiple matched added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
-          return i;
+          results.push_back(i);
+          break;
         }
-        if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
+        else if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
           if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") overlap added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
-          return i;
+          results.push_back(i);
+          break;
         }
-        if (adjDistance <= maxLDistance && (diffx <= 1.5*max_x_diff && diffy <= 1.5*max_y_diff && area_diff <= max_area_diff))
+        else if (adjDistance <= maxLDistance && (diffx <= 1.5*max_x_diff && diffy <= 1.5*max_y_diff && area_diff <= max_area_diff))
         {
           //cout << "Levenshtein match: " << plate.bestPlate.characters << "\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;//levenshteinDistance(plateResult.bestPlate.characters, plate.bestPlate.characters,10) << endl;
           if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Levenshtein added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
-          return i;
+          results.push_back(i);
+          break;
         }
       }
     }
 
     if (config->debugAggregator) cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]" << endl;
-    return -1;
+    results.push_back(-1);
+    }
+    return results;
+
   }
   //1/25/2016 adt, calculate the next potential plate regions for each cluster based on frame in cluster.  If there is
   //only one frame, will assume no movement.  Since clusters do not contain frame_numbers, this function assumes the last 2 plateResults
@@ -369,16 +379,16 @@ namespace alpr
         lastPlatey = -1,
         lastWidth = -1,
         lastHeight = -1;
-      for (unsigned int k = clusters[i].size(); k-- > 0;) 
+      for (unsigned int k = clusters[i].size(); k-- > 0;)
       {
         AlprPlateResult plateResult = clusters[i][k];
-        int x0 = plateResult.plate_points[0].x, 
-          x1 = plateResult.plate_points[1].x, 
-          x2 = plateResult.plate_points[2].x, 
-          x3 = plateResult.plate_points[3].x, 
-          y0 = plateResult.plate_points[0].y, 
-          y1 = plateResult.plate_points[1].y, 
-          y2 = plateResult.plate_points[2].y, 
+        int x0 = plateResult.plate_points[0].x,
+          x1 = plateResult.plate_points[1].x,
+          x2 = plateResult.plate_points[2].x,
+          x3 = plateResult.plate_points[3].x,
+          y0 = plateResult.plate_points[0].y,
+          y1 = plateResult.plate_points[1].y,
+          y2 = plateResult.plate_points[2].y,
           y3 = plateResult.plate_points[3].y,
           minx = min(x0, x3),
           miny = min(y0, y1),
@@ -386,13 +396,13 @@ namespace alpr
           maxy = max(y2, y3),
           width = maxx - minx,
           height = maxy - miny;
-         
-        if (clusters[i].size() == 1) {// nothing to compare, just return last rectangle.      
-          if (config->debugAggregator) cout << "Cluster["<<i<<"] returning non-moving rectangle " << minx << " " << miny << " " << width << " " << height << endl;          
+
+        if (clusters[i].size() == 1) {// nothing to compare, just return last rectangle.
+          if (config->debugAggregator) cout << "Cluster["<<i<<"] returning non-moving rectangle " << minx << " " << miny << " " << width << " " << height << endl;
           pr.rect = cv::Rect(minx, miny , width, height);
           prs.push_back(pr);
           break;
-        }else if (lastPlatex >=0) { //we already processed one frame, so calculate new coords based on velocities 
+        }else if (lastPlatex >=0) { //we already processed one frame, so calculate new coords based on velocities
           float widthProportion = lastWidth,//(abs(lastWidth-width)/width)*lastWidth, TODO: Fix proportional sizing
             heightProportion = lastHeight;//(abs(lastHeight-height)/height)*lastHeight;
           if (config->debugAggregator) cout << lastPlatex << "," <<lastWidth <<"," << minx << "," <<width <<  "," <<heightProportion << endl;
@@ -402,7 +412,7 @@ namespace alpr
           newy =  (miny + height/2) - (lastPlatey + lastHeight/2)+ lastPlatey,
           newWidth = round(widthProportion),
           newHeight = round(heightProportion);
-          if (config->debugAggregator) cout << "Cluster["<<i<<"] returning moving rectangle " << newx << " " << newy << " " << newWidth << " " << newHeight << endl;          
+          if (config->debugAggregator) cout << "Cluster["<<i<<"] returning moving rectangle " << newx << " " << newy << " " << newWidth << " " << newHeight << endl;
           pr.rect = cv::Rect(newx, newy, newWidth, newHeight);
           prs.push_back(pr);
           break;
@@ -411,7 +421,7 @@ namespace alpr
         lastPlatey = miny;
         lastWidth = width;
         lastHeight = height;
-        }   
+        }
       }
     }
     return prs;

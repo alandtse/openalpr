@@ -51,7 +51,7 @@ namespace alpr
     std::vector<std::vector<AlprPlateResult> > findClusters();
 
     //1/24/2016 adt, adding new overlaps that takes Levenshtein_distance to add to a cluster.  
-    int overlaps(AlprPlateResult plate, int maxLDistance);
+    std::vector<int> overlaps(std::vector<AlprPlateResult> plates, int maxLDistance);
     //1/25/2016 adt, calculate the next potential plate regions for each cluster.
     std::vector<PlateRegion> calcNextPlateRegions();
 

@@ -36,7 +36,6 @@ namespace alpr
 #else
     cuda_cascade = cuda::CascadeClassifier::create(get_detector_file());
     if( !this->cuda_cascade.get()->empty() )
-//    if( this->cuda_cascade->create( get_detector_file() ) )
 #endif
     {
       this->loaded = true;

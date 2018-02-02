@@ -294,73 +294,79 @@ namespace alpr
   {
     std::vector<int> results;
     for (int h=0; h < plates.size(); h++){
-    AlprPlateResult plate = plates[h];
-    // Check the center positions to see how close they are to each other
-    // Also compare the size.  If it's much much larger/smaller, treat it as a separate cluster
-    PlateShapeInfo psi = getShapeInfo(plate);
-    AlprPlateResult plateResult;
-    int distance, adjDistance, matchedChars;
+      AlprPlateResult plate = plates[h];
+      // Check the center positions to see how close they are to each other
+      // Also compare the size.  If it's much much larger/smaller, treat it as a separate cluster
+      PlateShapeInfo psi = getShapeInfo(plate);
+      AlprPlateResult plateResult;
+      int distance, adjDistance, matchedChars;
+      bool clusterFound = false;
 
-    for (unsigned int i = clusters.size(); i-- > 0;) //1/24/2016 adt,reverse order so latest frames first
-    {
-      for (unsigned int k = clusters[i].size(); k-- > 0;)
+      for (unsigned int i = clusters.size(); !clusterFound && i-- > 0;) //1/24/2016 adt,reverse order so latest frames first
       {
-        plateResult = clusters[i][k];
+        for (unsigned int k = clusters[i].size(); !clusterFound && k-- > 0;)
+        {
+          plateResult = clusters[i][k];
 
-        PlateShapeInfo cluster_shapeinfo = getShapeInfo(plateResult);
+          PlateShapeInfo cluster_shapeinfo = getShapeInfo(plateResult);
 
-        int diffx = abs(psi.center.x - cluster_shapeinfo.center.x);
-        int diffy = abs(psi.center.y - cluster_shapeinfo.center.y);
+          int diffx = abs(psi.center.x - cluster_shapeinfo.center.x);
+          int diffy = abs(psi.center.y - cluster_shapeinfo.center.y);
 
-        // divide the larger plate area by the smaller plate area to determine a match
-        float area_diff;
-        if (psi.area > cluster_shapeinfo.area)
+          // divide the larger plate area by the smaller plate area to determine a match
+          float area_diff;
+          if (psi.area > cluster_shapeinfo.area)
           area_diff = psi.area / cluster_shapeinfo.area;
-        else
+          else
           area_diff = cluster_shapeinfo.area / psi.area;
 
-        int max_x_diff = (psi.max_width + cluster_shapeinfo.max_width) / 2;
-        int max_y_diff = (psi.max_height + cluster_shapeinfo.max_height) / 2;
+          int max_x_diff = (psi.max_width + cluster_shapeinfo.max_width) / 2;
+          int max_y_diff = (psi.max_height + cluster_shapeinfo.max_height) / 2;
 
-        float max_area_diff = 4.0;
-        // Consider it a match if center diffx/diffy are less than the average height
-        // the area is not more than 4x different
-        // calculate levenshteinDistance using both assisted and unassisted plate characters
-        std::string plateChars = plate.bestPlate.characters,
+          float max_area_diff = 4.0;
+          // Consider it a match if center diffx/diffy are less than the average height
+          // the area is not more than 4x different
+          // calculate levenshteinDistance using both assisted and unassisted plate characters
+          std::string plateChars = plate.bestPlate.characters,
           plateOCRChars = plate.methodPlates["ocr"].characters,
           plateResultChars = plateResult.bestPlate.characters,
           plateResultOCRChars = plateResult.methodPlates["ocr"].characters;
-        distance = levenshteinDistance(plateOCRChars, plateResultOCRChars, max(plateOCRChars.size(),plateResultOCRChars.size()));
-        // calculate adjusted distance which will adjust distance based on lengths of characters in case of occlusions.
-        adjDistance = distance - abs((int) plateOCRChars.length() - (int) plateResultOCRChars.length());
-        int minMatches = (int) max(plateOCRChars.length(),plateResultOCRChars.length()) / 3;
-        //cout << plateChars << " (" << plateOCRChars <<") vs \t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
-        matchedChars = matchingChars(plateOCRChars, plateResultOCRChars);
-        //TODO: Need to check all clusters for matches in case of multiple clusters per frame
-        //Do a comparison to the last plate in the cluster for levenshteinDistance match using adjDistance
+          distance = levenshteinDistance(plateOCRChars, plateResultOCRChars, max(plateOCRChars.size(),plateResultOCRChars.size()));
+          // calculate adjusted distance which will adjust distance based on lengths of characters in case of occlusions.
+          adjDistance = distance - abs((int) plateOCRChars.length() - (int) plateResultOCRChars.length());
+          int minMatches = (int) max(plateOCRChars.length(),plateResultOCRChars.length()) / 3;
+          //cout << plateChars << " (" << plateOCRChars <<") vs \t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
+          matchedChars = matchingChars(plateOCRChars, plateResultOCRChars);
+          //TODO: Need to check all clusters for matches in case of multiple clusters per frame
+          //Do a comparison to the last plate in the cluster for levenshteinDistance match using adjDistance
 
-        if (matchedChars >= minMatches){
-          if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Multiple matched added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
-          results.push_back(i);
-          break;
-        }
-        else if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
-          if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") overlap added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
-          results.push_back(i);
-          break;
-        }
-        else if (adjDistance <= maxLDistance && (diffx <= 1.5*max_x_diff && diffy <= 1.5*max_y_diff && area_diff <= max_area_diff))
-        {
-          //cout << "Levenshtein match: " << plate.bestPlate.characters << "\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;//levenshteinDistance(plateResult.bestPlate.characters, plate.bestPlate.characters,10) << endl;
-          if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Levenshtein added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
-          results.push_back(i);
-          break;
+          if (matchedChars >= minMatches){
+            if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Multiple matched added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
+            results.push_back(i);
+            clusterFound=true;
+            break;
+          }
+          else if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
+            if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") overlap added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
+            results.push_back(i);
+            clusterFound=true;
+            break;
+          }
+          else if (adjDistance <= maxLDistance && (diffx <= 1.5*max_x_diff && diffy <= 1.5*max_y_diff && area_diff <= max_area_diff))
+          {
+            //cout << "Levenshtein match: " << plate.bestPlate.characters << "\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;//levenshteinDistance(plateResult.bestPlate.characters, plate.bestPlate.characters,10) << endl;
+            if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Levenshtein added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
+            results.push_back(i);
+            clusterFound=true;
+            break;
+          }
         }
       }
-    }
 
-    if (config->debugAggregator) cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]" << endl;
-    results.push_back(-1);
+      if (!clusterFound){
+        if (config->debugAggregator) cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]" << endl;
+        results.push_back(-1);
+      }
     }
     return results;
 

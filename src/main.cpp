@@ -62,6 +62,7 @@ int main( int argc, const char** argv )
   std::string configFile = "";
   bool outputJson = false;
   int seektoms = 0;
+  int endatms = 0;
   bool detectRegion = false;
   std::string country;
   int topn;
@@ -75,6 +76,7 @@ int main( int argc, const char** argv )
 
   TCLAP::ValueArg<std::string> countryCodeArg("c","country","Country code to identify (either us for USA or eu for Europe).  Default=us",false, "us" ,"country_code");
   TCLAP::ValueArg<int> seekToMsArg("","seek","Seek to the specified millisecond in a video file. Default=0",false, 0 ,"integer_ms");
+  TCLAP::ValueArg<int> endAtMsArg("","stop","Stop at the specified millisecond in a video file. Default=0 which is treated as end of file",false, 0 ,"integer_ms");
   TCLAP::ValueArg<std::string> configFileArg("","config","Path to the openalpr.conf file",false, "" ,"config_file");
   TCLAP::ValueArg<std::string> templatePatternArg("p","pattern","Attempt to match the plate number against a plate pattern (e.g., md for Maryland, ca for California)",false, "" ,"pattern code");
   TCLAP::ValueArg<int> topNArg("n","topn","Max number of possible plate numbers to return.  Default=10",false, 10 ,"topN");
@@ -89,6 +91,7 @@ int main( int argc, const char** argv )
   {
     cmd.add( templatePatternArg );
     cmd.add( seekToMsArg );
+    cmd.add( endAtMsArg ); // 2/1/2018 adt, adding to allow ending
     cmd.add( topNArg );
     cmd.add( configFileArg );
     cmd.add( fileArg );
@@ -105,6 +108,7 @@ int main( int argc, const char** argv )
 
     country = countryCodeArg.getValue();
     seektoms = seekToMsArg.getValue();
+    endatms = endAtMsArg.getValue(); // 2/1/2018 adt, adding to allow ending
     outputJson = jsonSwitch.getValue();
     debug_mode = debugSwitch.getValue();
     configFile = configFileArg.getValue();
@@ -126,12 +130,12 @@ int main( int argc, const char** argv )
     return 1;
   }
 
-  
+
   cv::Mat frame;
 
   Alpr alpr(country, configFile);
   alpr.setTopN(topn);
-  
+
   if (debug_mode)
   {
     alpr.getConfig()->setDebug(true);
@@ -193,13 +197,13 @@ int main( int argc, const char** argv )
     else if (filename == "webcam" || startsWith(filename, WEBCAM_PREFIX))
     {
       int webcamnumber = 0;
-      
+
       // If they supplied "/dev/video[number]" parse the "number" here
       if(startsWith(filename, WEBCAM_PREFIX) && filename.length() > WEBCAM_PREFIX.length())
       {
         webcamnumber = atoi(filename.substr(WEBCAM_PREFIX.length()).c_str());
       }
-      
+
       int framenum = 0;
       cv::VideoCapture cap(webcamnumber);
       if (!cap.isOpened())
@@ -267,14 +271,16 @@ int main( int argc, const char** argv )
         totalFrames = cap.get(CV_CAP_PROP_FRAME_COUNT); //2016/06/13 adt, getting totalFrames
         while (cap.read(frame))
         {
+          frameTime = cap.get(CV_CAP_PROP_POS_MSEC);
+          vidFrame = cap.get(CV_CAP_PROP_POS_FRAMES);
+          if (endatms != 0 and frameTime >= endatms) //2/2/2016 adt, stop processing
+            break;
           if (SAVE_LAST_VIDEO_STILL)
           {
             cv::imwrite(LAST_VIDEO_STILL_LOCATION, frame);
           }
           if (!outputJson){
             //Output additional video data video frame and current video time 12/15/2015 adt
-            frameTime = cap.get(CV_CAP_PROP_POS_MSEC);
-            vidFrame = cap.get(CV_CAP_PROP_POS_FRAMES);
             alpr.setFrame(vidFrame); //2016/06/05 adt, pass in current vidFrame
             alpr.setTime(frameTime); //2016/06/05 adt, pass in current videotime
             std::cout << "Processing Frame: " << framenum << " VideoFrame: " << vidFrame << "/" << totalFrames << " (" << toString((float) vidFrame / (totalFrames) * 100) << "\%)"<< " VideoTime (ms) " << frameTime << std::endl;
@@ -348,8 +354,8 @@ int main( int argc, const char** argv )
 
 bool is_supported_image(std::string image_file)
 {
-  return (hasEndingInsensitive(image_file, ".png") || hasEndingInsensitive(image_file, ".jpg") || 
-	  hasEndingInsensitive(image_file, ".tif") || hasEndingInsensitive(image_file, ".bmp") ||  
+  return (hasEndingInsensitive(image_file, ".png") || hasEndingInsensitive(image_file, ".jpg") ||
+	  hasEndingInsensitive(image_file, ".tif") || hasEndingInsensitive(image_file, ".bmp") ||
 	  hasEndingInsensitive(image_file, ".jpeg") || hasEndingInsensitive(image_file, ".gif"));
 }
 
@@ -380,8 +386,8 @@ bool detectandshow( Alpr* alpr, cv::Mat frame, std::string region, bool writeJso
   double totalProcessingTime = diffclock(startTime, endTime);
   if (measureProcessingTime)
     std::cout << "Total Time to process image: " << totalProcessingTime << "ms." << std::endl;
-  
-  
+
+
   if (writeJson)
   {
     std::cout << alpr->toJson( results ) << std::endl;
@@ -397,17 +403,17 @@ bool detectandshow( Alpr* alpr, cv::Mat frame, std::string region, bool writeJso
 
       if (results.plates[i].regionConfidence > 0)
         std::cout << "State ID: " << results.plates[i].region << " (" << results.plates[i].regionConfidence << "% confidence)" << std::endl;
-      
+
       for (int k = 0; k < results.plates[i].topNPlates.size(); k++)
       {
         // Replace the multiline newline character with a dash
         std::string no_newline = results.plates[i].topNPlates[k].characters;
         std::replace(no_newline.begin(), no_newline.end(), '\n','-');
-        
+
         std::cout << "    - " << no_newline << "\t confidence: " << results.plates[i].topNPlates[k].overall_confidence;
         if (templatePattern.size() > 0 || results.plates[i].regionConfidence > 0)
           std::cout << "\t pattern_match: " << results.plates[i].topNPlates[k].matches_template;
-        
+
         std::cout << std::endl;
       }
     }
@@ -417,4 +423,3 @@ bool detectandshow( Alpr* alpr, cv::Mat frame, std::string region, bool writeJso
 
   return results.plates.size() > 0;
 }
-

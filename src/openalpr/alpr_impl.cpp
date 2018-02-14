@@ -619,7 +619,7 @@ namespace alpr
           AlprPlateResult aggregatePlate = aggregateResults.plates[cluster_index];
           if (((aggregatePlate.bestPlate.overall_confidence > plateResult.bestPlate.overall_confidence) && (aggregatePlate.bestPlate.matches_template == plateResult.bestPlate.matches_template))
             || (aggregatePlate.bestPlate.matches_template && !plateResult.bestPlate.matches_template)){
-            if (config->debugAggregator) cout << "clusterHistory found better at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
+            if (config->debugAggregator) cout << "cluster[" << cluster_index <<"] clusterHistory found better at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
               << "\t vs frame: " << response.results.frame_number << " : " << plateResult.bestPlate.characters << " " << plateResult.bestPlate.overall_confidence << " match:" << plateResult.bestPlate.matches_template << endl;
             //TODO:Figure out what aggregateResults since character details won't necessarily be at the same coords
             response.results.plates[i].bestPlate.characters = aggregatePlate.bestPlate.characters;
@@ -632,7 +632,7 @@ namespace alpr
             aggregateResults.plates[cluster_index] = aggregatePlate; //Needed for debug output below to work.
 
           }else {
-          if (config->debugAggregator)cout << "clusterHistory result worse at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
+          if (config->debugAggregator)cout << "cluster[" << cluster_index <<"] clusterHistory result worse at frame: " << aggregateResults.frame_number << " : " << aggregatePlate.bestPlate.characters << " " << aggregatePlate.bestPlate.overall_confidence << " match:" << aggregatePlate.bestPlate.matches_template
             << "\t vs frame: " << response.results.frame_number << " : " << plateResult.bestPlate.characters << " " << plateResult.bestPlate.overall_confidence << " match:" << plateResult.bestPlate.matches_template << endl;
             if (groupResults.size() > cluster_index)
                 groupResults[cluster_index] = response.results.plates;
@@ -643,21 +643,17 @@ namespace alpr
               for (int i = 0; i<aggregateResults.plates.size(); i++){
                 lastPlate = (i == 0)? "":aggregateResults.plates[i-1].bestPlate.characters;
                 thisPlate = aggregateResults.plates[i].bestPlate.characters;
-                if (config->debugAggregator)cout << "aggregate[" <<i <<"]:\t" <<
+                if (config->debugAggregator)
+                  cout << "aggregate[" <<i <<"]:\t" <<
                   "x["<< min (aggregateResults.plates[i].plate_points[0].x, aggregateResults.plates[i].plate_points[3].x) << "," <<
                   max (aggregateResults.plates[i].plate_points[1].x, aggregateResults.plates[i].plate_points[2].x) << "]" <<
                   "y["<< min (aggregateResults.plates[i].plate_points[0].y, aggregateResults.plates[i].plate_points[1].y) << "," <<
                   max (aggregateResults.plates[i].plate_points[2].y, priorResults[i].plates[0].plate_points[3].y) << "]" <<
               "\t"<< aggregateResults.plates[i].bestPlate.characters << "\t\t" << aggregateResults.plates[i].bestPlate.overall_confidence << "\tdistance: " << levenshteinDistance(lastPlate, thisPlate, 10) << "\t method:" << aggregateResults.plates[i].bestPlate.method <<endl;
               }
-            if (config->debugAggregator) cout << toJson(response.results) << endl;
           }
         }
-
-
       }
-      pAggregator->addResults(response);
-
     }
     // Unwarp plate regions if necessary
     prewarp->projectPlateRegions(warpedPlateRegions, grayImg.cols, grayImg.rows, true);
@@ -666,6 +662,9 @@ namespace alpr
     timespec endTime;
     getTimeMonotonic(&endTime);
     response.results.total_processing_time_ms = diffclock(startTime, endTime);
+    if (response.results.plates.size() > 0 && usePriorResults)
+      pAggregator->addResults(response);
+      //if (config->debugAggregator) cout << toJson(response.results) << endl;
     return response;
   }
 

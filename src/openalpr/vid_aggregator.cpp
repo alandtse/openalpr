@@ -31,7 +31,7 @@ namespace alpr
 
   void VidAggregator::addResults(AlprFullDetails full_results)
   {
-    if (config->debugAggregator) cout << "Adding result to existing " << all_results.size() << " items."<< endl;
+    if (config->debugAggregator) cout << "Adding frame "<< full_results.results.frame_number <<  " with " << full_results.results.plates.size() << " plates to existing " << all_results.size() << " total result frames."<< endl;
     std::vector<int> cluster_indexes = overlaps(full_results.results.plates, 2); //1/24/2016 adt, setting maxLevenStein distance of 2 for overloaded function
     for (unsigned int plate_id = 0; plate_id < full_results.results.plates.size(); plate_id++)
     {
@@ -40,16 +40,24 @@ namespace alpr
       if (cluster_index < 0)
       {
         vector<AlprPlateResult> new_cluster;
+        vector<int64_t> new_clusterFrame;
         new_cluster.push_back(plate);
+        new_clusterFrame.push_back(full_results.results.frame_number);
         clusters.push_back(new_cluster);
+        clusterFrames.push_back(new_clusterFrame);
+        if (config->debugAggregator)
+          cout << "addResults: Plate " << plate_id << " " << plate.bestPlate.characters << " added to new cluster [" << clusters.size()-1 << "]\t" << endl;
       }
       else
       {
         clusters[cluster_index].push_back(plate);
+        clusterFrames[cluster_index].push_back(full_results.results.frame_number);
+        if (config->debugAggregator)
+          cout << "addResults: Plate " << plate_id << " " << plate.bestPlate.characters << " added to cluster [" << cluster_index << "]\t" << endl;
       }
     }
     all_results.push_back(full_results);
-    lastClusterCalc = all_results.size();
+    lastFrameCalc = full_results.results.frame_number;
   }
 
   bool compareScore2(const std::pair<float, ResultPlateScore>& firstElem, const std::pair<float, ResultPlateScore>& secondElem) {
@@ -252,18 +260,20 @@ namespace alpr
 
     return response;
   }
+
   std::vector<std::vector<AlprPlateResult> > VidAggregator::findClusters()
   {
-    return clusters;
+      expireClusters(lastFrameCalc - 30);
+      return clusters;
   }
 
-  // Searches all_plates to find overlapping plates. This will clear create a new cluster.
-  // Returns an array containing "clusters" (overlapping plates)
+  // Regenerate "clusters" (overlapping plates)
+  // TODO:This is unused, but needs to have clusterFrames updated if used.
   void VidAggregator::genClusters()
   {
     //std::vector<std::vector<AlprPlateResult> > clusters
     clusters.clear();
-    lastClusterCalc = all_results.size();
+    lastFrameCalc = all_results.back().results.frame_number; //this may not be accurate if last result wasn't in last video frame
     for (unsigned int i = 0; i < all_results.size(); i++)
     {
       std::vector<int> cluster_indexes = overlaps(all_results[i].results.plates, 2); //1/24/2016 adt, setting maxLevenStein distance of 2 for overloaded function
@@ -285,29 +295,58 @@ namespace alpr
     }
   }
 
+  // Expire any clusters that are older than oldestFrame
+  void VidAggregator::expireClusters(int oldestFrame)
+  {
+    assert(clusterFrames.size() == clusters.size());
+    if (oldestFrame < 0)
+      return;
+    //std::vector<std::vector<AlprPlateResult> > clusters
+    for (unsigned int i = 0; i < clusterFrames.size(); i++){
+      assert(clusterFrames[i].size() == clusters[i].size());
+      for (unsigned int j = clusterFrames[i].size(); j-- > 0;){
+        if (clusterFrames[i][j] < oldestFrame){
+          if (config->debugAggregator)
+            cout << "Expiring cluster[" << i << "] before index " << j << " with value " <<clusterFrames[i][j] << " older than " << oldestFrame << " new size " << clusterFrames[i].size() - j << endl;
+      clusterFrames[i].erase(clusterFrames[i].begin(), clusterFrames[i].begin()+j);
+          clusters[i].erase(clusters[i].begin(), clusters[i].begin()+j);
+                break;
+        }
+      }
+    }
+  }
+
+
   //1/24/2016 adt, adding overlaps that takes Levenshtein_distance to add to a cluster.  This is primarily to allow reuse of overlaps
   // where the plate may have moved beyond the overlap but is sufficiently close. This will start from the latest entries and only process images from the last frame for each cluster.
-  // Returns the cluster ID if the plate overlaps or if no overlap, Levenshtein distance is less than maxLDistance.  Otherwise returns -1
-  // TODO: Clear out old clusters if overlaps; match to cluster if > 2 spots identical
+  // Returns the cluster ID if the plate overlaps or if no overlap, Levenshtein distancematch to cluster if > 2 spots identical
   std::vector<int> VidAggregator::overlaps(std::vector<AlprPlateResult> plates,
                                  int maxLDistance)
   {
     std::vector<int> results;
-    for (int h=0; h < plates.size(); h++){
-      AlprPlateResult plate = plates[h];
-      // Check the center positions to see how close they are to each other
-      // Also compare the size.  If it's much much larger/smaller, treat it as a separate cluster
-      PlateShapeInfo psi = getShapeInfo(plate);
-      AlprPlateResult plateResult;
-      int distance, adjDistance, matchedChars;
-      bool clusterFound = false;
-
-      for (unsigned int i = clusters.size(); !clusterFound && i-- > 0;) //1/24/2016 adt,reverse order so latest frames first
+    results.assign(plates.size(), -1);
+    struct candidate
+    {
+      int plateIndex;
+      float value;
+      bool operator<(const candidate& rhs) const
       {
+        return value < rhs.value;
+      }
+    };
+    AlprPlateResult plateResult;
+    int distance, adjDistance, matchedChars, matchedClusters=0;
+    for (unsigned int i = clusters.size(); i-- > 0;){ //1/24/2016 adt,reverse order so latest frames first
+      std::priority_queue<candidate> matchesQ, levenShteinQ, overlapQ;
+      for (int h=0; h < plates.size(); h++){
+        AlprPlateResult plate = plates[h];
+        bool clusterFound = false;
+        // Check the center positions to see how close they are to each other
+        // Also compare the size.  If it's much much larger/smaller, treat it as a separate cluster
+        PlateShapeInfo psi = getShapeInfo(plate);
         for (unsigned int k = clusters[i].size(); !clusterFound && k-- > 0;)
         {
           plateResult = clusters[i][k];
-
           PlateShapeInfo cluster_shapeinfo = getShapeInfo(plateResult);
 
           int diffx = abs(psi.center.x - cluster_shapeinfo.center.x);
@@ -334,40 +373,59 @@ namespace alpr
           distance = levenshteinDistance(plateOCRChars, plateResultOCRChars, max(plateOCRChars.size(),plateResultOCRChars.size()));
           // calculate adjusted distance which will adjust distance based on lengths of characters in case of occlusions.
           adjDistance = distance - abs((int) plateOCRChars.length() - (int) plateResultOCRChars.length());
-          int minMatches = (int) max(plateOCRChars.length(),plateResultOCRChars.length()) / 3;
+          int minMatches = max(3, (int) (max(plateOCRChars.length(),plateResultOCRChars.length()) * .40));
           //cout << plateChars << " (" << plateOCRChars <<") vs \t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;
-          matchedChars = matchingChars(plateOCRChars, plateResultOCRChars);
-          //TODO: Need to check all clusters for matches in case of multiple clusters per frame
+          matchedChars = max(max(matchingChars(plateOCRChars, plateResultOCRChars),
+          matchingChars(plateOCRChars.erase(0,1), plateResultOCRChars)),
+          matchingChars(plateOCRChars, plateResultOCRChars.erase(0,1)));
           //Do a comparison to the last plate in the cluster for levenshteinDistance match using adjDistance
 
           if (matchedChars >= minMatches){
-            if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Multiple matched added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
-            results.push_back(i);
+            if (config->debugAggregator) cout << "Plate " << h << " " << plateChars << " (" << plateOCRChars <<") multiple matched to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
+            candidate c = {h, static_cast<float>(matchedChars)};
+            matchesQ.push(c);
             clusterFound=true;
-            break;
-          }
-          else if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
-            if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") overlap added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
-            results.push_back(i);
-            clusterFound=true;
-            break;
-          }
-          else if (adjDistance <= maxLDistance && (diffx <= 1.5*max_x_diff && diffy <= 1.5*max_y_diff && area_diff <= max_area_diff))
-          {
+          }else if (adjDistance <= maxLDistance && (diffx <= 1.5*max_x_diff && diffy <= 1.5*max_y_diff && area_diff <= max_area_diff)){
             //cout << "Levenshtein match: " << plate.bestPlate.characters << "\t" << plateResult.bestPlate.characters << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance << endl;//levenshteinDistance(plateResult.bestPlate.characters, plate.bestPlate.characters,10) << endl;
-            if (config->debugAggregator) cout << plateChars << " (" << plateOCRChars <<") Levenshtein added to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
-            results.push_back(i);
+            if (config->debugAggregator) cout << "Plate " << h << " " << plateChars << " (" << plateOCRChars <<") levenshtein matched to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
+            candidate c = {h, static_cast<float>(-distance)};
+            levenShteinQ.push(c);
             clusterFound=true;
-            break;
+          }else if (diffx <= max_x_diff && diffy <= max_y_diff && area_diff <= max_area_diff){ //no need to check for distance if overlap
+            if (config->debugAggregator) cout << "Plate " << h << " " << plateChars << " (" << plateOCRChars <<") overlap matched to cluster[" << i << "]\t" << plateResultOCRChars << "\tdistance: " << distance <<  "\tadjDistance: " << adjDistance <<  "\tdiffx: " << diffx <<  "\tdiffy: " << diffy <<  "\tarea_diff: " << area_diff << "\tmatchedChars: " << matchedChars << endl;
+            candidate c = {h, static_cast<float>(area_diff)};
+            overlapQ.push(c);
+            clusterFound=true;
           }
         }
       }
-
-      if (!clusterFound){
-        if (config->debugAggregator) cout << plate.bestPlate.characters << " added to new cluster[" << clusters.size()  << "]" << endl;
-        results.push_back(-1);
+      candidate c;
+      if (!matchesQ.empty()) {
+        c = matchesQ.top();
+        results[c.plateIndex] = i;
+        if (config->debugAggregator) cout << "Plate " << c.plateIndex << " " << plates[c.plateIndex].bestPlate.characters << " best matchedChars for cluster[" << i << "]\t" << c.value << endl;
+        matchedClusters++;
+      }else if (!levenShteinQ.empty()){
+        c = levenShteinQ.top();
+        results[c.plateIndex] = i;
+        if (config->debugAggregator) cout << "Plate " << c.plateIndex << " " << plates[c.plateIndex].bestPlate.characters << " best levenshtein for cluster[" << i << "]\t" << c.value << endl;
+        matchedClusters++;
+      }else if(!overlapQ.empty()){
+        c = overlapQ.top();
+        results[c.plateIndex] = i;
+        if (config->debugAggregator) cout << "Plate " << c.plateIndex << " " << plates[c.plateIndex].bestPlate.characters << " best overlap for cluster[" << i << "]\t" << c.value << endl;
+        matchedClusters++;
       }
     }
+    int y= plates.size() - matchedClusters;
+    if (config->debugAggregator && y > 0){
+      cout << y << " plates with no matches:" << endl;
+      for (int z = 0, y =clusters.size(); z< plates.size(); z++){
+        if (results[z] == -1)
+        cout << "Plate " << z << " " << plates[z].bestPlate.characters << " should be new cluster [" << y++ << "]\t" << endl;
+      }
+    }
+
     return results;
 
   }

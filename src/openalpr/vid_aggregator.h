@@ -21,7 +21,7 @@
  * Copyright (c) 2016 Alan D. Tse.
  * Extends result_aggregator and is performs aggregation functions on different frames from same video
  */
- 
+
 #ifndef OPENALPR_VIDAGGREGATOR_H
 #define OPENALPR_VIDAGGREGATOR_H
 
@@ -39,25 +39,28 @@ namespace alpr
   public:
     VidAggregator(ResultMergeStrategy merge_strategy, int topn, Config* config) : ResultAggregator (merge_strategy, topn, config)
     {};
-    // 
+    //
     // virtual ~VidAggregator();
-    // 
+    //
     void addResults(AlprFullDetails full_results);
-    // 
+    //
     AlprFullDetails getAggregateResults();
     //  Add a single result
     //1/26/2016 adt, making cluster operations public
     void genClusters();
+    void expireClusters(int oldestFrame);
+
     std::vector<std::vector<AlprPlateResult> > findClusters();
 
-    //1/24/2016 adt, adding new overlaps that takes Levenshtein_distance to add to a cluster.  
+    //1/24/2016 adt, adding new overlaps that takes Levenshtein_distance to add to a cluster.
     std::vector<int> overlaps(std::vector<AlprPlateResult> plates, int maxLDistance);
     //1/25/2016 adt, calculate the next potential plate regions for each cluster.
     std::vector<PlateRegion> calcNextPlateRegions();
 
-  private:  
+  private:
     std::vector<std::vector<AlprPlateResult> > clusters;
-    int lastClusterCalc; //keep track of last time clusters saved
+    std::vector<std::vector<int64_t> > clusterFrames; //frame number of relevant cluster AlprPlateResult
+    int lastFrameCalc; //keep track of last time clusters saved
   };
 
 }

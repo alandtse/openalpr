@@ -46,7 +46,7 @@ namespace alpr
       expandedRegion.width = maxX - expandedRegion.x;
     if (expandedRegion.y + expandedRegion.height > maxY)
       expandedRegion.height = maxY - expandedRegion.y;
-    
+
     return expandedRegion;
   }
 
@@ -280,7 +280,7 @@ int levenshteinDistance (const std::string &s1, const std::string &s2, int max)
     const char* word2 = s2.c_str();
     int len2 = s2.length();
     max--;
-  
+
     //int matrix[2][len2 + 1];
     std::vector<std::vector<int> > matrix;
     for (unsigned int i = 0; i < 2; i++)
@@ -292,14 +292,14 @@ int levenshteinDistance (const std::string &s1, const std::string &s2, int max)
     }
     int i;
     int j;
-    
+
     /*
       Initialize the 0 row of "matrix".
 
-        0  
-        1  
-        2  
-        3  
+        0
+        1
+        2
+        3
 
      */
 
@@ -394,20 +394,21 @@ int levenshteinDistance (const std::string &s1, const std::string &s2, int max)
       returnval = max + 1;
     return returnval;
 }
-  
+
 int matchingChars (const std::string &s1, const std::string &s2)
 {
     const char* word1 = s1.c_str();
     int len1 = s1.length();
     const char* word2 = s2.c_str();
     int len2 = s2.length();
-  
-    int i;
     int matches = 0;
-    
-    for (i = 0; i <= len2 && i<= len1; i++) {
-      if (word1[i] == word2[i])
-      matches++;
+
+    for (int i = 0; i < len2 && i< len1; i++) {
+      //cout << word1[i] << " : " << word2[i]<<endl;
+      if (word1[i] == word2[i]  && word1[i] != '~' && word2[i] != '~'){ // do not match when unknown char
+        matches++;
+        //cout << word1[i] << " matches " << word2[i]<<endl;
+      }
     }
 
     return matches;
@@ -457,7 +458,7 @@ int matchingChars (const std::string &s1, const std::string &s2)
     float y_intercept = getPointAt(0);
     return (y - y_intercept) / slope;
   }
-  
+
   Point LineSegment::closestPointOnSegmentTo(Point p)
   {
     float top = (p.x - p1.x) * (p2.x - p1.x) + (p.y - p1.y)*(p2.y - p1.y);
@@ -537,7 +538,7 @@ int matchingChars (const std::string &s1, const std::string &s2)
 
     return result;
   }
-  
+
   cv::Point findClosestPoint(cv::Point2f* polygon_points, int num_points, cv::Point position)
   {
     int closest_point_index = 0;
@@ -553,15 +554,15 @@ int matchingChars (const std::string &s1, const std::string &s2)
         closest_point_index = i;
       }
     }
-    
+
     return Point((int)polygon_points[closest_point_index].x, (int)polygon_points[closest_point_index].y);
   }
-  
+
   std::vector<cv::Point> sortPolygonPoints(cv::Point2f* polygon_points, cv::Size surrounding_image)
   {
-    
+
     vector<Point> return_points;
-    
+
     // Find top-left
     return_points.push_back( findClosestPoint(polygon_points, 4, Point(0, 0)) );
     return_points.push_back( findClosestPoint(polygon_points, 4,Point(surrounding_image.width, 0)) );
@@ -571,7 +572,7 @@ int matchingChars (const std::string &s1, const std::string &s2)
     return return_points;
   }
   // Given a contour and a mask, this function determines what percentage of the contour (area)
-  // is inside the masked area. 
+  // is inside the masked area.
   float getContourAreaPercentInsideMask(cv::Mat mask, std::vector<std::vector<cv::Point> > contours, std::vector<cv::Vec4i> hierarchy, int contourIndex)
   {
 
